@@ -1,4 +1,4 @@
-This database is designed to manage the inventory of a restaurant or store. It tracks users, inventory items, suppliers, orders, transactions, and stock usage. The database ensures scalability, data integrity, and efficient querying by using foreign keys and indexing.
+This database is designed to manage the inventory of a restaurant or store. It tracks users, inventory items, suppliers, orders, transactions, and stock usage. The database ensures scalability, data integrity, and efficient querying by using foreign keys, indexing, triggers, and stored procedures.
 
 Tables & Their Purpose
 	1.	users – Stores user accounts with different roles (admin, manager, staff, supplier).
@@ -7,7 +7,6 @@ Tables & Their Purpose
 	4.	orders – Records purchase orders made to suppliers.
 	5.	order_items – Links inventory items to specific orders, tracking quantities ordered.
 	6.	transactions – Logs stock usage, adjustments, and updates by users.
-
 
 Key Relationships
 	•	inventory.supplier_id → Links to suppliers.id (each inventory item has a supplier).
@@ -19,8 +18,10 @@ Key Relationships
 
 Scalability Features
 	•	Uses foreign keys to maintain relationships and ensure data integrity.
-	•	Indexed key columns (id, email, inventory_id, supplier_id) for fast queries.
+	•	Indexed key columns (id, email, inventory_id, supplier_id) for faster queries.
+	•	Automated stock updates using triggers (e.g., reducing stock when an order is placed).
 	•	Supports expanding inventory and multiple store locations in the future.
+	•	Stored procedures help automate repetitive database tasks.
 
 
 How to Import the Database
@@ -28,4 +29,4 @@ How to Import the Database
 	2.	Create a new database named restaurant_inventory.
 	3.	Click Import → Select restaurant_inventory.sql → Click Go.
 
-This structure ensures efficient inventory tracking, order management, and stock control.
+This structure ensures efficient inventory tracking, automated stock management, and secure data handling.

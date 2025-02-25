@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 20, 2025 at 11:50 AM
+-- Generation Time: Feb 25, 2025 at 12:13 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -38,6 +38,19 @@ CREATE TABLE `inventory` (
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `inventory`
+--
+
+INSERT INTO `inventory` (`id`, `item_name`, `category`, `quantity`, `reorder_level`, `expiry_date`, `supplier_id`, `last_updated`) VALUES
+(1, 'Test Item', 'Test Category', 50, 10, '2025-12-31', 1, '2025-02-25 10:22:24'),
+(7, 'Tomatoes', 'Vegetables', 60, 10, '2025-03-15', 1, '2025-02-25 10:16:12'),
+(8, 'Lettuce', 'Vegetables', 30, 5, '2025-02-25', 1, '2025-02-25 10:13:39'),
+(9, 'Milk', 'Dairy', 20, 8, '2025-03-01', 2, '2025-02-25 10:13:39'),
+(10, 'Cheese', 'Dairy', 20, 5, '2025-04-10', 2, '2025-02-25 10:21:28'),
+(11, 'Chicken Breast', 'Meat', 25, 7, '2025-02-28', 3, '2025-02-25 10:13:39'),
+(12, 'Ground Beef', 'Meat', 40, 12, '2025-03-05', 3, '2025-02-25 10:13:39');
+
 -- --------------------------------------------------------
 
 --
@@ -52,6 +65,15 @@ CREATE TABLE `orders` (
   `expected_delivery` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `supplier_id`, `status`, `order_date`, `expected_delivery`) VALUES
+(1, 1, 'delivered', '2025-02-10 00:00:00', '2025-02-12'),
+(2, 2, 'pending', '2025-02-15 00:00:00', '2025-02-20'),
+(3, 3, 'shipped', '2025-02-14 00:00:00', '2025-02-18');
+
 -- --------------------------------------------------------
 
 --
@@ -64,6 +86,29 @@ CREATE TABLE `order_items` (
   `inventory_id` int(11) NOT NULL,
   `quantity_ordered` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Triggers `order_items`
+--
+DELIMITER $$
+CREATE TRIGGER `reduce_stock_after_order` AFTER INSERT ON `order_items` FOR EACH ROW UPDATE inventory
+SET quantity = quantity - NEW.quantity_ordered
+WHERE id = NEW.inventory_id
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `order_summary`
+-- (See below for the actual view)
+--
+CREATE TABLE `order_summary` (
+`id` int(11)
+,`name` varchar(255)
+,`status` enum('pending','shipped','delivered','cancelled')
+,`order_date` timestamp
+);
 
 -- --------------------------------------------------------
 
@@ -80,6 +125,15 @@ CREATE TABLE `suppliers` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `suppliers`
+--
+
+INSERT INTO `suppliers` (`id`, `name`, `contact_info`, `email`, `phone`, `created_at`) VALUES
+(1, 'Fresh Veggies Ltd.', '123 Green St.', 'contact@freshveggies.com', '0123456789', '2025-02-25 10:11:25'),
+(2, 'Dairy Co.', '45 Milk Road', 'sales@dairyco.com', '0987654321', '2025-02-25 10:11:25'),
+(3, 'Meat Distributors Inc.', '78 Steak Ave.', 'info@meatdistributors.com', '0156789456', '2025-02-25 10:11:25');
+
 -- --------------------------------------------------------
 
 --
@@ -94,6 +148,13 @@ CREATE TABLE `transactions` (
   `transaction_type` enum('added','removed','adjusted') NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `transactions`
+--
+
+INSERT INTO `transactions` (`id`, `inventory_id`, `user_id`, `quantity_used`, `transaction_type`, `created_at`) VALUES
+(6, 1, 2, 5, 'removed', '2025-02-25 10:22:31');
 
 -- --------------------------------------------------------
 
@@ -111,6 +172,25 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `created_at`) VALUES
+(1, 'Admin User', 'admin@example.com', 'hashedpassword1', 'admin', '2025-02-25 10:11:25'),
+(2, 'Manager User', 'manager@example.com', 'hashedpassword2', 'manager', '2025-02-25 10:11:25'),
+(3, 'Staff User', 'staff@example.com', 'hashedpassword3', 'staff', '2025-02-25 10:11:25'),
+(4, 'Supplier User', 'supplier@example.com', 'hashedpassword4', 'supplier', '2025-02-25 10:11:25');
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `order_summary`
+--
+DROP TABLE IF EXISTS `order_summary`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `order_summary`  AS SELECT `orders`.`id` AS `id`, `suppliers`.`name` AS `name`, `orders`.`status` AS `status`, `orders`.`order_date` AS `order_date` FROM (`orders` join `suppliers` on(`orders`.`supplier_id` = `suppliers`.`id`)) ;
+
+--
 -- Indexes for dumped tables
 --
 
@@ -119,7 +199,8 @@ CREATE TABLE `users` (
 --
 ALTER TABLE `inventory`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `supplier_id` (`supplier_id`);
+  ADD KEY `supplier_id` (`supplier_id`),
+  ADD KEY `idx_item_name` (`item_name`);
 
 --
 -- Indexes for table `orders`
@@ -156,7 +237,8 @@ ALTER TABLE `transactions`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_email` (`email`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -166,37 +248,37 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Constraints for dumped tables
