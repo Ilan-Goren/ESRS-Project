@@ -1,9 +1,13 @@
 import Login from "./LoginPage";
+import Review from "./review";
+import LoginPage from "./Login";
 
 function App() {
     return (
         <div className="App">
-            <Login/>
+            {/* <Login/> */}
+            <LoginPage/>
+            {/* <Review/> */}
         </div>
     );
 }
