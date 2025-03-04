@@ -32,7 +32,8 @@ Ensure the following are installed on your system:
 
 - **Node.js** (v14 or later)  
 - **XAMPP** (for MySQL database)  
-- **Git**  
+- **Git**
+- **Tailwind v3**
 
 ### Installation
 
@@ -46,10 +47,6 @@ cd inventory-system
 ```
 npm install
 ```
-
-#### Configure Tailwind CSS:
-- Ensure `tailwind.config.js` is properly set up with content paths.  
-- Ensure `index.css` has the Tailwind directives at the top.
 
 #### Set up the PHP API:
 - Copy the PHP files to your XAMPP `htdocs` directory.  
@@ -126,33 +123,6 @@ The temporary PHP API includes endpoints for:
 
 ---
 
-## Collaboration Workflow
-
-### Pull the latest changes:
-```
-git pull origin main
-```
-
-### Create a feature branch:
-```
-git checkout -b feature/your-feature-name
-```
-
-### Commit your changes:
-```
-git add .
-git commit -m "Description of changes"
-```
-
-### Push your branch:
-```
-git push origin feature/your-feature-name
-```
-
-- Create a **pull request on GitHub** for review.
-
----
-
 ## Future Integration with Django Backend
 
 The frontend is designed to easily transition from the temporary PHP API to a **Django REST API**:
@@ -162,35 +132,3 @@ The frontend is designed to easily transition from the temporary PHP API to a **
 - **Update service functions** to align with Django's API endpoints and response formats.  
 
 ---
-
-## Troubleshooting
-
-### Common Issues
-
-- **Layout problems**:  
-  - Ensure Tailwind CSS is properly configured.  
-  - Ensure `index.css` has the correct Tailwind directives at the top.  
-
-- **Authentication failures**:  
-  - Check that the PHP API is accessible.  
-  - Verify that database credentials are correct.  
-
-- **Content not rendering**:  
-  - Check the browser console for errors.  
-  - Verify that component imports are correct.  
-
----
-
-## CSS Styling
-
-For proper styling, ensure `index.css` has Tailwind directives at the top:
-
-```
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer components {
-  /* Custom component classes */
-}
-```
