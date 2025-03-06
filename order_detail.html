@@ -1,0 +1,12 @@
+<h2>Order Details</h2>
+<p>Customer: {{ order.customer_name }}</p>
+<p>Status: {{ order.status }}</p>
+
+<h3>Delivery</h3>
+<p>Delivery Date: {{ order.delivery.delivery_date }}</p>
+<p>Status: {{ order.delivery.is_delivered|yesno:"Delivered,Pending" }}</p>
+<a href="{% url 'update_delivery_status' order.id %}">Update Delivery Status</a>
+
+<h3>Payment</h3>
+<p>Status: {{ order.payment.status }}</p>
+<a href="{% url 'confirm_payment' order.id %}">Confirm Payment</a>

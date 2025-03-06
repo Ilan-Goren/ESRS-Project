@@ -1,0 +1,18 @@
+<h2>Supplier Dashboard</h2>
+<p>Welcome, {{supplier.company_name}}</p>
+
+<h3>Products</h3>
+<ul> 
+    {% for product in products %}
+    <li>{{product.name}} - {{product.stock_quantity}} in stock</li>
+    {% endfor %}
+</ul>
+
+<h3>Orders</h3>
+<ul>
+    {% for order in orders %}
+    <li>
+        <a href="{% url 'order_detail' order.id %}">Order {{ order.id}} - {{order.customer_name}}</a>
+    </li>
+    {% endfor %}
+</ul>
