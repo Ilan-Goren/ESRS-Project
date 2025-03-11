@@ -1,9 +1,9 @@
 import React from "react";
 import "./styles.css"; 
-import adminIcon from "./assets/admin.jpg"; 
-import managerIcon from "./assets/manager.jpg"; 
-import staffIcon from "./assets/staff.jpg"; 
-import supplierIcon from "./assets/supplier.jpg"; 
+import adminIcon from "./assets/admin.png"; 
+import managerIcon from "./assets/manager.png"; 
+import staffIcon from "./assets/staff.png"; 
+import supplierIcon from "./assets/supplier.png"; 
 
 const LoginPage = () => {
     const handleIconClick = (role) => {
@@ -37,19 +37,19 @@ const LoginPage = () => {
             {/* icon */}
             <div className="icon-container">
               <div className="icon" onClick={() => handleIconClick("admin")}>
-                <img src={adminIcon} alt="Admin" className="icon-image" />
+                <img src={adminIcon} className="icon-image" />
                 <span className="icon-text">Admin</span>
               </div>
               <div className="icon" onClick={() => handleIconClick("manager")}>
-                <img src={managerIcon} alt="Manager" className="icon-image" />
+                <img src={managerIcon} className="icon-image" />
                 <span className="icon-text">Manager</span>
               </div>
               <div className="icon" onClick={() => handleIconClick("staff")}>
-                <img src={staffIcon} alt="Staff" className="icon-image" />
+                <img src={staffIcon} className="icon-image" />
                 <span className="icon-text">Staff</span>
               </div>
               <div className="icon" onClick={() => handleIconClick("supplier")}>
-                <img src={supplierIcon} alt="Supplier" className="icon-image" />
+                <img src={supplierIcon} className="icon-image" />
                 <span className="icon-text">Supplier</span>
               </div>
             </div>
@@ -62,7 +62,7 @@ const LoginPage = () => {
               {/* checkbox */}
               <div className="checkbox-container">
                 <input type="checkbox" id="keep-logged" />
-                <label htmlFor="keep-logged">Keep me logged in</label>
+                <label>Keep me logged in</label>
               </div>
     
               {/* login button */}
