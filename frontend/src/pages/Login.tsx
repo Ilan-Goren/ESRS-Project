@@ -5,10 +5,10 @@ import { login } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
 // Import images
-import adminIcon from "../assets/restaurant.jpg";
-import managerIcon from "../assets/restaurant.jpg";
-import staffIcon from "../assets/restaurant.jpg";
-import supplierIcon from "../assets/restaurant.jpg";
+import adminIcon from "../assets/admin.png";
+import managerIcon from "../assets/manager.png";
+import staffIcon from "../assets/staff.png";
+import supplierIcon from "../assets/supplier.png";
 import restaurantBg from "../assets/restaurant.jpg";
 
 interface LoginFormData {
