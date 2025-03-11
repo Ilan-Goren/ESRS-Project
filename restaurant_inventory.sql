@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 25, 2025 at 12:13 PM
+-- Generation Time: Mar 11, 2025 at 12:34 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -29,6 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `inventory` (
   `id` int(11) NOT NULL,
+  `sku` varchar(50) DEFAULT NULL,
   `item_name` varchar(255) NOT NULL,
   `category` varchar(100) DEFAULT NULL,
   `quantity` int(11) NOT NULL DEFAULT 0,
@@ -42,14 +43,14 @@ CREATE TABLE `inventory` (
 -- Dumping data for table `inventory`
 --
 
-INSERT INTO `inventory` (`id`, `item_name`, `category`, `quantity`, `reorder_level`, `expiry_date`, `supplier_id`, `last_updated`) VALUES
-(1, 'Test Item', 'Test Category', 50, 10, '2025-12-31', 1, '2025-02-25 10:22:24'),
-(7, 'Tomatoes', 'Vegetables', 60, 10, '2025-03-15', 1, '2025-02-25 10:16:12'),
-(8, 'Lettuce', 'Vegetables', 30, 5, '2025-02-25', 1, '2025-02-25 10:13:39'),
-(9, 'Milk', 'Dairy', 20, 8, '2025-03-01', 2, '2025-02-25 10:13:39'),
-(10, 'Cheese', 'Dairy', 20, 5, '2025-04-10', 2, '2025-02-25 10:21:28'),
-(11, 'Chicken Breast', 'Meat', 25, 7, '2025-02-28', 3, '2025-02-25 10:13:39'),
-(12, 'Ground Beef', 'Meat', 40, 12, '2025-03-05', 3, '2025-02-25 10:13:39');
+INSERT INTO `inventory` (`id`, `sku`, `item_name`, `category`, `quantity`, `reorder_level`, `expiry_date`, `supplier_id`, `last_updated`) VALUES
+(1, NULL, 'Test Item', 'Test Category', 50, 10, '2025-12-31', 1, '2025-02-25 10:22:24'),
+(7, NULL, 'Tomatoes', 'Vegetables', 60, 10, '2025-03-15', 1, '2025-02-25 10:16:12'),
+(8, NULL, 'Lettuce', 'Vegetables', 30, 5, '2025-02-25', 1, '2025-02-25 10:13:39'),
+(9, NULL, 'Milk', 'Dairy', 20, 8, '2025-03-01', 2, '2025-02-25 10:13:39'),
+(10, NULL, 'Cheese', 'Dairy', 20, 5, '2025-04-10', 2, '2025-02-25 10:21:28'),
+(11, NULL, 'Chicken Breast', 'Meat', 25, 7, '2025-02-28', 3, '2025-02-25 10:13:39'),
+(12, NULL, 'Ground Beef', 'Meat', 40, 12, '2025-03-05', 3, '2025-02-25 10:13:39');
 
 -- --------------------------------------------------------
 
@@ -199,6 +200,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 ALTER TABLE `inventory`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `sku` (`sku`),
   ADD KEY `supplier_id` (`supplier_id`),
   ADD KEY `idx_item_name` (`item_name`);
 
@@ -248,7 +250,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `orders`
@@ -278,7 +280,7 @@ ALTER TABLE `transactions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
