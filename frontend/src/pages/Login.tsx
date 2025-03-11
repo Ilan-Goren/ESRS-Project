@@ -17,15 +17,22 @@ interface LoginFormData {
 }
 
 const MergedLogin = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
+  const { register, handleSubmit, formState: { errors }, setValue, reset } = useForm<LoginFormData>();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
+  // No predefined email addresses, allowing multiple users per role
+
   const handleIconClick = (role: string) => {
     setSelectedRole(role);
+    
+    // Reset form fields when changing roles
+    reset();
+    
+    // Clear any existing error
     setError(null);
   };
 
@@ -34,6 +41,8 @@ const MergedLogin = () => {
       setError("Please select a role first");
       return;
     }
+
+    // No email validation against predefined emails - allow any email for the selected role
 
     setLoading(true);
     setError(null);
@@ -44,6 +53,13 @@ const MergedLogin = () => {
         password: data.password,
         role: selectedRole
       });
+      
+      // Check if user role matches the selected role
+      if (response.user.role !== selectedRole) {
+        setError('Invalid login credentials. Please try again.');
+        setLoading(false);
+        return;
+      }
       
       // Save token and user
       localStorage.setItem('token', response.token);
@@ -121,7 +137,9 @@ const MergedLogin = () => {
                 type="email"
                 style={styles.inputField}
                 placeholder="Email"
-                {...register('email', { required: 'Email is required' })}
+                {...register('email', { 
+                  required: 'Email is required'
+                })}
               />
             </div>
             {errors.email && (
@@ -149,10 +167,14 @@ const MergedLogin = () => {
             {/* Login button */}
             <button 
               type="submit" 
-              style={loading ? {...styles.loginBtn, ...styles.buttonDisabled} : styles.loginBtn}
-              disabled={loading}
+              style={{
+                ...styles.loginBtn,
+                ...(loading ? styles.buttonDisabled : {}),
+                ...(selectedRole ? {} : styles.buttonDisabled)
+              }}
+              disabled={loading || !selectedRole}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Logging in...' : selectedRole ? `Login as ${selectedRole}` : 'Select a role'}
             </button>
 
             {/* Forgotten password*/}
@@ -271,7 +293,7 @@ const styles = {
     transition: "background-color 0.3s ease",
   },
   buttonDisabled: {
-    backgroundColor: "#7ab5ff",
+    backgroundColor: "#999",
     cursor: "not-allowed",
   },
   forgotPassword: {
@@ -283,6 +305,9 @@ const styles = {
   },
   errorMessage: {
     color: "#e53e3e",
+    backgroundColor: "#fee",
+    padding: "10px",
+    borderRadius: "4px",
     marginBottom: "15px",
     fontSize: "14px",
     textAlign: "center" as const,
