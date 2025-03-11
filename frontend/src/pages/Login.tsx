@@ -1,66 +1,66 @@
-import { useState } from 'react';
+import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { login } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
-// Images (make sure they are in the assets folder)
+// Import images
 import adminIcon from "../assets/restaurant.jpg";
 import managerIcon from "../assets/restaurant.jpg";
 import staffIcon from "../assets/restaurant.jpg";
 import supplierIcon from "../assets/restaurant.jpg";
+import restaurantBg from "../assets/restaurant.jpg";
 
-type FormValues = {
+interface LoginFormData {
   email: string;
   password: string;
-};
+}
 
-const Login = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+const MergedLogin = () => {
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
-  const handleRoleClick = (role: string) => {
+  const handleIconClick = (role: string) => {
     setSelectedRole(role);
+    setError(null);
   };
 
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+  const onSubmit = async (data: LoginFormData) => {
     if (!selectedRole) {
-      setError('Please select a role to continue.');
+      setError("Please select a role first");
       return;
     }
 
     setLoading(true);
     setError(null);
-
+    
     try {
       const response = await login({
         email: data.email,
-        password: data.password
+        password: data.password,
+        role: selectedRole
       });
-
-      // Save token and user data
+      
+      // Save token and user
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-
+      
       // Update auth context
       setUser(response.user);
-
-      // Redirect based on role (override selectedRole if backend role differs)
-      const roleToRedirect = response.user.role || selectedRole;
-
+      
+      // Redirect based on role
       const redirectMap: Record<string, string> = {
         admin: '/admin',
         manager: '/manager',
         staff: '/staff',
         supplier: '/supplier'
       };
-
-      navigate(redirectMap[roleToRedirect] || '/');
+      
+      navigate(redirectMap[response.user.role] || '/');
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error(err);
@@ -71,204 +71,228 @@ const Login = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.left}>
+      {/* Left - Login form */}
+      <div style={styles.leftContainer}>
+        {/* Logo */}
         <div style={styles.logo}>STOCKED</div>
 
+        {/* Icons */}
         <div style={styles.iconContainer}>
-          <RoleIcon role="admin" label="Admin" icon={adminIcon} onClick={handleRoleClick} selected={selectedRole === 'admin'} />
-          <RoleIcon role="manager" label="Manager" icon={managerIcon} onClick={handleRoleClick} selected={selectedRole === 'manager'} />
-          <RoleIcon role="staff" label="Staff" icon={staffIcon} onClick={handleRoleClick} selected={selectedRole === 'staff'} />
-          <RoleIcon role="supplier" label="Supplier" icon={supplierIcon} onClick={handleRoleClick} selected={selectedRole === 'supplier'} />
+          <div 
+            style={selectedRole === "admin" ? {...styles.icon, ...styles.selectedIcon} : styles.icon} 
+            onClick={() => handleIconClick("admin")}
+          >
+            <img src={adminIcon} alt="Admin" style={styles.iconImage} />
+            <span style={styles.iconText}>Admin</span>
+          </div>
+          <div 
+            style={selectedRole === "manager" ? {...styles.icon, ...styles.selectedIcon} : styles.icon} 
+            onClick={() => handleIconClick("manager")}
+          >
+            <img src={managerIcon} alt="Manager" style={styles.iconImage} />
+            <span style={styles.iconText}>Manager</span>
+          </div>
+          <div 
+            style={selectedRole === "staff" ? {...styles.icon, ...styles.selectedIcon} : styles.icon} 
+            onClick={() => handleIconClick("staff")}
+          >
+            <img src={staffIcon} alt="Staff" style={styles.iconImage} />
+            <span style={styles.iconText}>Staff</span>
+          </div>
+          <div 
+            style={selectedRole === "supplier" ? {...styles.icon, ...styles.selectedIcon} : styles.icon} 
+            onClick={() => handleIconClick("supplier")}
+          >
+            <img src={supplierIcon} alt="Supplier" style={styles.iconImage} />
+            <span style={styles.iconText}>Supplier</span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} style={styles.loginBox}>
+        {/* Login form */}
+        <div style={styles.loginBox}>
           {error && (
             <div style={styles.errorMessage}>
               {error}
             </div>
           )}
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div style={styles.inputWrapper}>
+              <input
+                type="email"
+                style={styles.inputField}
+                placeholder="Email"
+                {...register('email', { required: 'Email is required' })}
+              />
+            </div>
+            {errors.email && (
+              <p style={styles.fieldError}>{errors.email.message}</p>
+            )}
+            
+            <div style={styles.inputWrapper}>
+              <input
+                type="password"
+                style={styles.inputField}
+                placeholder="Password"
+                {...register('password', { required: 'Password is required' })}
+              />
+            </div>
+            {errors.password && (
+              <p style={styles.fieldError}>{errors.password.message}</p>
+            )}
 
-          <input
-            type="email"
-            placeholder="Email"
-            {...register('email', { required: 'Email is required' })}
-            style={styles.inputField}
-          />
-          {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+            {/* Checkbox */}
+            <div style={styles.checkboxContainer}>
+              <input type="checkbox" id="keep-logged" style={styles.checkbox} />
+              <label htmlFor="keep-logged" style={styles.checkboxLabel}>Keep me logged in</label>
+            </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            {...register('password', { required: 'Password is required' })}
-            style={styles.inputField}
-          />
-          {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
+            {/* Login button */}
+            <button 
+              type="submit" 
+              style={loading ? {...styles.loginBtn, ...styles.buttonDisabled} : styles.loginBtn}
+              disabled={loading}
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
 
-          <div style={styles.checkboxContainer}>
-            <input type="checkbox" id="keep-logged" style={styles.checkbox} />
-            <label htmlFor="keep-logged" style={styles.checkboxLabel}>Keep me logged in</label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={loading ? { ...styles.loginButton, ...styles.loginButtonDisabled } : styles.loginButton}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-
-          <p style={styles.forgotPassword}>Forgot password?</p>
-        </form>
+            {/* Forgotten password*/}
+            <p style={styles.forgotPassword}>Forgot password?</p>
+          </form>
+        </div>
       </div>
 
-      <div style={styles.right}></div>
+      {/* Right - Background Image */}
+      <div style={styles.rightContainer}></div>
     </div>
   );
 };
 
-type RoleIconProps = {
-  role: string;
-  label: string;
-  icon: string;
-  onClick: (role: string) => void;
-  selected: boolean;
-};
-
-const RoleIcon = ({ role, label, icon, onClick, selected }: RoleIconProps) => (
-  <div
-    onClick={() => onClick(role)}
-    style={{
-      ...styles.icon,
-      ...(selected ? styles.selectedIcon : {})
-    }}
-  >
-    <img src={icon} alt={label} style={styles.iconImage} />
-    <span style={styles.iconText}>{label}</span>
-  </div>
-);
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    height: '100vh',
-    fontFamily: "'Arial', sans-serif"
+// Styles
+const styles = {
+  inputWrapper: {
+    position: "relative" as const,
+    width: "100%",
   },
-  left: {
-    flex: 1,
-    padding: '40px',
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: '#f0f2f5',
-    position: 'relative'
+  container: {
+    display: "flex",
+    width: "100%",
+    height: "100vh",
+    fontFamily: "'Arial', sans-serif",
+  },
+  leftContainer: {
+    flex: "0 0 50%",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "40px",
+    backgroundColor: "#fff",
+  },
+  rightContainer: {
+    flex: "0 0 50%",
+    backgroundImage: `url(${restaurantBg})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
   },
   logo: {
-    fontSize: '32px',
-    fontWeight: 'bold',
-    marginBottom: '40px',
-    color: '#333'
+    fontSize: "28px",
+    fontWeight: "700" as const,
+    marginBottom: "30px",
+    color: "#000",
+    padding: "10px 20px",
+    backgroundColor: "#000",
+    color: "#fff",
+    borderRadius: "4px",
   },
   iconContainer: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    marginBottom: '40px',
-    flexWrap: 'wrap'
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "15px",
+    marginBottom: "40px",
+    width: "100%",
+    maxWidth: "400px",
   },
   icon: {
-    cursor: 'pointer',
-    textAlign: 'center',
-    marginBottom: '20px',
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: 'transparent', // moved from shorthand
-    borderRadius: '10px',
-    padding: '10px',
-    transition: 'border-color 0.3s ease'
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    cursor: "pointer",
+    padding: "5px",
+    transition: "all 0.3s ease",
   },
   selectedIcon: {
-    borderColor: '#007bff'
+    borderBottom: "2px solid #000",
   },
   iconImage: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    objectFit: 'cover'
+    width: "50px",
+    height: "50px",
+    marginBottom: "5px",
   },
   iconText: {
-    display: 'block',
-    marginTop: '10px',
-    fontSize: '14px',
-    color: '#555'
+    fontSize: "14px",
+    color: "#333",
   },
   loginBox: {
-    backgroundColor: '#fff',
-    padding: '30px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '400px'
+    width: "100%",
+    maxWidth: "400px",
   },
   inputField: {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '15px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    boxSizing: 'border-box'
+    width: "100%",
+    padding: "10px 0",
+    margin: "10px 0",
+    fontSize: "14px",
+    border: "none",
+    borderBottom: "1px solid #ddd",
+    boxSizing: "border-box" as const,
+    outline: "none",
+    transition: "border-color 0.3s ease",
   },
   checkboxContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '15px'
+    display: "flex",
+    alignItems: "center",
+    marginTop: "15px",
+    marginBottom: "20px",
   },
   checkbox: {
-    marginRight: '8px'
+    marginRight: "8px",
   },
   checkboxLabel: {
-    fontSize: '14px',
-    color: '#555'
+    fontSize: "14px",
+    color: "#555",
   },
-  loginButton: {
-    width: '100%',
-    padding: '12px',
-    fontSize: '16px',
-    color: '#fff',
-    backgroundColor: '#007bff',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease'
+  loginBtn: {
+    width: "100%",
+    padding: "12px",
+    fontSize: "16px",
+    color: "#fff",
+    backgroundColor: "#000",
+    border: "none",
+    cursor: "pointer",
+    transition: "background-color 0.3s ease",
   },
-  loginButtonDisabled: {
-    backgroundColor: '#7ab5ff',
-    cursor: 'not-allowed'
+  buttonDisabled: {
+    backgroundColor: "#7ab5ff",
+    cursor: "not-allowed",
   },
   forgotPassword: {
-    marginTop: '15px',
-    fontSize: '14px',
-    color: '#007bff',
-    cursor: 'pointer',
-    textAlign: 'center'
+    marginTop: "15px",
+    fontSize: "14px",
+    color: "#555",
+    cursor: "pointer",
+    textAlign: "center" as const,
   },
   errorMessage: {
-    backgroundColor: '#ffeeee',
-    color: '#e53e3e',
-    padding: '10px',
-    borderRadius: '8px',
-    marginBottom: '15px',
-    fontSize: '14px'
+    color: "#e53e3e",
+    marginBottom: "15px",
+    fontSize: "14px",
+    textAlign: "center" as const,
   },
   fieldError: {
-    color: '#e53e3e',
-    fontSize: '12px',
-    marginTop: '-10px',
-    marginBottom: '10px'
+    color: "#e53e3e",
+    fontSize: "12px",
+    marginTop: "5px",
+    marginBottom: "10px",
   },
-  right: {
-    flex: 1,
-    backgroundImage: 'url(../assets/restaurant.jpg)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center'
-  }
 };
 
-export default Login;
+export default MergedLogin;

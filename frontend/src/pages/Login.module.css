@@ -1,0 +1,141 @@
+/* Layout */
+.container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background-color: #f5f6fa;
+  }
+  
+  .right {
+    flex: 1;
+    background-image: url('../assets/restaurant.jpg'); /* Replace with your actual path */
+    background-size: cover;
+    background-position: center;
+  }
+  
+  /* Logo */
+  .logo {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 40px;
+    color: #333;
+  }
+  
+  /* Icons */
+  .icon-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  
+  .icon {
+    cursor: pointer;
+    text-align: center;
+    padding: 10px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    transition: border-color 0.3s;
+  }
+  
+  .icon:hover {
+    border-color: #007bff;
+  }
+  
+  .icon.selected {
+    border-color: #007bff;
+  }
+  
+  .icon-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .icon-text {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  /* Login box */
+  .login-box {
+    width: 100%;
+    max-width: 400px;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .input-field {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+  
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .login-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .login-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  .login-btn.disabled {
+    background-color: #7ab5ff;
+    cursor: not-allowed;
+  }
+  
+  .forgot-password {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #007bff;
+    text-align: center;
+    cursor: pointer;
+  }
+  
+  .error-message {
+    background-color: #ffeeee;
+    color: #e53e3e;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  
+  .field-error {
+    color: #e53e3e;
+    font-size: 12px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+  }
