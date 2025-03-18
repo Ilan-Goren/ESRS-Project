@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Manage Users</h2>
+
+<table>
+    <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Actions</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+            {% if user.profile.role %}
+                {{ user.profile.role }}
+            {% else %}
+                No Role Assigned
+            {% endif %}
+        </td>
+        <td>
+            <a href="#">Edit</a> | <a href="#">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

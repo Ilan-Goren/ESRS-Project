@@ -1,0 +1,22 @@
+<h2>Inventory Dashboard</h2>
+
+<h3>Stock Levels</h3>
+<ul>
+    {% for item in items %}
+    <li> 'item.name'  -  'item.quantity'  in stock</li>
+    {% endfor %}
+</ul>
+
+<h3>Low Stock Alerts</h3>
+<ul>
+    {% for item in low_stock_items %}
+    <li> 'item.name'  - Only  'item.quantity'  left! <a href="{% url 'update_stock' item.id %}">Update Stock</a></li>
+    {% endfor %}
+</ul>
+
+<h3>Expired Items</h3>
+<ul>
+    {% for item in expired_items %}
+    <li> 'item.name'  (Expired on {{ item.expiry_date }})</li>
+    {% endfor %}
+</ul>

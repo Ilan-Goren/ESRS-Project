@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+
+<h3>Stock Reports</h3>
+<p>Total Items: {{ stock_reports.total_items }}</p>
+<p>Low Stock Items: {{ stock_reports.low_stock_items }}</p>
+<p>Expired Items: {{ stock_reports.expired_items }}</p>
+<a href="{% url 'export_stock_report_csv' %}" class="btn btn-primary">Export to CSV</a>
+
+<h3>Order Summary</h3>
+<p>Total Orders: {{ order_summary.total_orders }}</p>
+<p>Pending Orders: {{ order_summary.pending_orders }}</p>
+<p>Delivered Orders: {{ order_summary.delivered_orders }}</p>
+
+<h3>Supplier Performance</h3>
+<table>
+    <tr>
+        <th>Supplier</th>
+        <th>Success Rate</th>
+        <th>Delayed Orders</th>
+        <th>Avg Delivery Time (days)</th>
+    </tr>
+    {% for supplier in suppliers %}
+    <tr>
+        <td>{{ supplier.supplier.name }}</td>
+        <td>{{ supplier.success_rate|floatformat:2 }}%</td>
+        <td>{{ supplier.delayed_orders }}</td>
+        <td>{{ supplier.avg_delivery_time }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
