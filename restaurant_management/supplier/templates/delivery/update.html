@@ -1,0 +1,185 @@
+{% extends 'supplier/base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Update Order Status | Supplier Portal{% endblock %}
+{% block page_title %}Update Order Status{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Update Order #{{ order.id }}</h1>
+            <p class="mb-0">Change the status of this order</p>
+        </div>
+        <div>
+            <a href="{% url 'supplier:order_detail' order.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Order Details
+            </a>
+        </div>
+    </div>
+
+    <!-- Current Status -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Current Order Status</h6>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th width="30%">Order Number:</th>
+                                <td>{{ order.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Order Date:</th>
+                                <td>{{ order.order_date|date:"M d, Y" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Current Status:</th>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif order.status == 'shipped' %}
+                                        <span class="badge bg-info">Shipped</span>
+                                    {% elif order.status == 'delivered' %}
+                                        <span class="badge bg-success">Delivered</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <div class="status-flow">
+                        <div class="status-step {% if order.status != 'pending' %}completed{% endif %} {% if order.status == 'pending' %}active{% endif %}">
+                            <div class="status-icon">1</div>
+                            <div class="status-label">Pending</div>
+                        </div>
+                        <div class="status-line {% if order.status != 'pending' %}completed{% endif %}"></div>
+                        <div class="status-step {% if order.status == 'shipped' or order.status == 'delivered' %}completed{% endif %} {% if order.status == 'shipped' %}active{% endif %}">
+                            <div class="status-icon">2</div>
+                            <div class="status-label">Shipped</div>
+                        </div>
+                        <div class="status-line {% if order.status == 'delivered' %}completed{% endif %}"></div>
+                        <div class="status-step {% if order.status == 'delivered' %}completed active{% endif %}">
+                            <div class="status-icon">3</div>
+                            <div class="status-label">Delivered</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Update Status Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Update Status</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.status|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {{ form.expected_delivery|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        {{ form.notes|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <div class="status-help mb-4">
+                    <h6 class="font-weight-bold">Status Descriptions:</h6>
+                    <ul>
+                        <li><strong>Pending</strong> - Order has been received but not yet processed</li>
+                        <li><strong>Shipped</strong> - Order has been processed and is on the way</li>
+                        <li><strong>Delivered</strong> - Order has been successfully delivered</li>
+                        <li><strong>Cancelled</strong> - Order has been cancelled (use only when necessary)</li>
+                    </ul>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'supplier:order_detail' order.id %}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-success">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<style>
+    /* Status Flow Visualization */
+    .status-flow {
+        display: flex;
+        align-items: center;
+        padding: 20px 0;
+    }
+    
+    .status-step {
+        text-align: center;
+        position: relative;
+    }
+    
+    .status-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+        border: 2px solid #dee2e6;
+    }
+    
+    .status-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .status-line {
+        flex-grow: 1;
+        height: 2px;
+        background-color: #e9ecef;
+        margin: 0 10px;
+        position: relative;
+        top: -20px;
+    }
+    
+    .status-step.active .status-icon {
+        background-color: #4caf50;
+        color: white;
+        border-color: #4caf50;
+    }
+    
+    .status-step.active .status-label {
+        color: #4caf50;
+    }
+    
+    .status-step.completed .status-icon {
+        background-color: #4caf50;
+        color: white;
+        border-color: #4caf50;
+    }
+    
+    .status-line.completed {
+        background-color: #4caf50;
+    }
+    
+    .status-help ul {
+        padding-left: 20px;
+    }
+</style>
+{% endblock %}

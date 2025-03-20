@@ -1,0 +1,142 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Inventory | Restaurant Management System{% endblock %}
+
+{% block page_title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Inventory Items</h1>
+            <p class="mb-0">Manage your restaurant's inventory</p>
+        </div>
+        <div>
+            {% if request.user.profile.role != 'staff' %}
+            <a href="{% url 'store:inventory_add' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i> Add New Item
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Filters and Search -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Filters and Search</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search by Name</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="category" class="form-label">Filter by Category</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a href="{% url 'store:inventory_list' %}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Alert for Low Stock Items -->
+    {% with low_stock_count=inventory|dictsortby:"quantity"|dictsort:"reorder_level"|length %}
+    {% if low_stock_count > 0 %}
+    <div class="alert alert-warning mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Attention!</strong> You have {{ low_stock_count }} items with low stock levels.
+        <a href="{% url 'store:inventory_low_stock' %}" class="alert-link">View low stock items</a>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- Inventory Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold">Inventory Items</h6>
+            <div>
+                <a href="{% url 'store:inventory_low_stock' %}" class="btn btn-sm btn-warning me-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Low Stock
+                </a>
+                <a href="{% url 'store:inventory_expiring' %}" class="btn btn-sm btn-danger">
+                    <i class="fas fa-calendar-times me-1"></i> Expiring Soon
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Reorder Level</th>
+                            <th>Expiry Date</th>
+                            <th>Supplier</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory %}
+                        <tr>
+                            <td>{{ item.id }}</td>
+                            <td>{{ item.item_name }}</td>
+                            <td>{{ item.category|default:"N/A" }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.reorder_level }}</td>
+                            <td>{{ item.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
+                            <td>{{ item.supplier.name|default:"N/A" }}</td>
+                            <td>
+                                {% if item.quantity <= 0 %}
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                {% elif item.quantity <= item.reorder_level %}
+                                    <span class="badge bg-warning">Low Stock</span>
+                                {% elif item.is_expired %}
+                                    <span class="badge bg-danger">Expired</span>
+                                {% else %}
+                                    <span class="badge bg-success">In Stock</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if request.user.profile.role != 'staff' %}
+                                    <a href="{% url 'store:inventory_edit' item.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'store:inventory_delete' item.id %}" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if request.user.profile.role == 'staff' %}
+                                    <a href="{% url 'store:transaction_add' %}?inventory={{ item.id }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-exchange-alt"></i> Log Usage
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No inventory items found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

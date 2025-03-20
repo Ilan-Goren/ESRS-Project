@@ -1,0 +1,195 @@
+{% extends 'store/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create New Order | Restaurant Management System{% endblock %}
+
+{% block page_title %}Create New Order{% endblock %}
+
+{% block extra_css %}
+<style>
+    .formset-item {
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .delete-row {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    #empty-form {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Create New Order</h1>
+            <p class="mb-0">Place a new order for inventory items</p>
+        </div>
+        <div>
+            <a href="{% url 'store:orders_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Orders
+            </a>
+        </div>
+    </div>
+    
+    <!-- Order Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Order Details</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" id="orderForm">
+                {% csrf_token %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        {{ form.supplier|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.expected_delivery|as_crispy_field }}
+                    </div>
+                </div>
+                
+                <hr class="mb-4">
+                
+                <h5 class="mb-3">Order Items</h5>
+                
+                {{ formset.management_form }}
+                
+                {% if formset.forms %}
+                <div id="order-items">
+                    <!-- Empty form template for JavaScript -->
+                    <div id="empty-form" class="formset-item">
+                        <button type="button" class="btn btn-sm btn-danger delete-row">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ formset.empty_form.inventory|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ formset.empty_form.quantity_ordered|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ formset.empty_form.id }}
+                        {{ formset.empty_form.DELETE }}
+                    </div>
+                    
+                    <!-- Actual forms -->
+                    {% for form in formset.forms %}
+                    <div class="formset-item">
+                        {% if form.instance.pk %}
+                        <button type="button" class="btn btn-sm btn-danger delete-row">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.inventory|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.quantity_ordered|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.id }}
+                        <div style="display: none;">
+                            {{ form.DELETE }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="mb-4">
+                    <button type="button" id="add-item" class="btn btn-info">
+                        <i class="fas fa-plus-circle me-2"></i> Add Another Item
+                    </button>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'store:orders_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addItemBtn = document.getElementById('add-item');
+        const orderItems = document.getElementById('order-items');
+        const emptyForm = document.getElementById('empty-form');
+        const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+        
+        if (addItemBtn && orderItems && totalForms) {
+            addItemBtn.addEventListener('click', function() {
+                // Get current form count
+                const formCount = parseInt(totalForms.value);
+                
+                // Clone the empty form template
+                const newForm = emptyForm.cloneNode(true);
+                newForm.id = `item-${formCount}`;
+                newForm.style.display = 'block';
+                
+                // Update form index
+                newForm.innerHTML = newForm.innerHTML.replace(/items-__prefix__/g, `items-${formCount}`);
+                newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, formCount);
+                
+                // Add the new form
+                orderItems.appendChild(newForm);
+                
+                // Update total form count
+                totalForms.value = formCount + 1;
+                
+                // Add delete handler to the new row
+                addDeleteHandler(newForm.querySelector('.delete-row'));
+            });
+            
+            // Add delete handlers to existing rows
+            document.querySelectorAll('.delete-row').forEach(addDeleteHandler);
+            
+            function addDeleteHandler(button) {
+                if (button) {
+                    button.addEventListener('click', function() {
+                        const formItem = this.closest('.formset-item');
+                        const deleteCheckbox = formItem.querySelector('input[type=checkbox][name$=DELETE]');
+                        
+                        if (deleteCheckbox) {
+                            deleteCheckbox.checked = true;
+                            formItem.style.display = 'none';
+                        } else {
+                            formItem.remove();
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Ensure quantity is positive
+        document.querySelectorAll('input[name$=quantity_ordered]').forEach(function(input) {
+            input.addEventListener('change', function() {
+                if (parseInt(this.value) < 1) {
+                    this.value = 1;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
