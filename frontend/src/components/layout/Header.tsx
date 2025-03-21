@@ -3,16 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login');
-  };
 
   return (
     <header className="bg-white shadow-sm z-10">
@@ -46,7 +39,7 @@ const Header = () => {
                     <div className="text-xs text-gray-500 mt-1 capitalize">{user?.role || 'user'}</div>
                   </div>
                   <button
-                    onClick={handleLogout}
+                    onClick={logout}
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     Sign out
