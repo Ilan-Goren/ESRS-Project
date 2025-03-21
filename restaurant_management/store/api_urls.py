@@ -11,6 +11,8 @@ from .api_views import (
     UserListCreateView,
     UserDetailView
 )
+from rest_framework.routers import DefaultRouter
+from .api_views import OrderViewSet
 
 urlpatterns = [
     # Inventory endpoints
@@ -33,3 +35,8 @@ urlpatterns = [
     path('users/', UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
 ]
+
+router = DefaultRouter()
+router.register(r'orders-viewset', OrderViewSet, basename='order-viewset')
+
+urlpatterns += router.urls

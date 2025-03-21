@@ -1,11 +1,12 @@
-from rest_framework import generics
+from rest_framework import generics, viewsets, permissions
 from .models import Inventory, Order, Supplier, Transaction
 from .serializers import (
     InventorySerializer,
     OrderSerializer,
     SupplierSerializer,
     TransactionSerializer,
-    UserSerializer
+    UserSerializer,
+    OrderCreateUpdateSerializer
 )
 
 # Inventory Views
@@ -25,6 +26,15 @@ class OrderListCreateView(generics.ListCreateAPIView):
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return OrderCreateUpdateSerializer
+        return OrderSerializer
 
 # Supplier Views
 class SupplierListCreateView(generics.ListCreateAPIView):
