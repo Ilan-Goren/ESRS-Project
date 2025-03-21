@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import AdvancedSearch from '../../components/inventory/AdvancedSearch';
+import axios from 'axios';
 
 interface InventoryItem {
   id: number;
+  sku: string | null;
   item_name: string;
   category: string;
   quantity: number;
   reorder_level: number;
   expiry_date: string;
-  supplier_id: number;
-  supplier_name: string;
+  supplier: number | null;
 }
 
 const InventoryPage = () => {
@@ -22,37 +23,24 @@ const InventoryPage = () => {
     { id: 'Meat', name: 'Meat' }
   ];
 
-  const suppliers = [
-    { id: 1, name: 'Fresh Veggies Ltd.' },
-    { id: 2, name: 'Dairy Co.' },
-    { id: 3, name: 'Meat Distributors Inc.' }
-  ];
-
   const handleSearch = async (filters: any) => {
     console.log('handleSearch called with:', filters);
     try {
       const queryParams = new URLSearchParams();
 
-      if (filters.searchTerm) queryParams.append('searchTerm', filters.searchTerm);
+      if (filters.searchTerm) queryParams.append('search', filters.searchTerm);
       if (filters.category) queryParams.append('category', filters.category);
       if (filters.supplier) queryParams.append('supplier', filters.supplier);
-      if (filters.minStock !== '' && filters.minStock !== undefined) queryParams.append('minStock', filters.minStock);
-      if (filters.maxStock !== '' && filters.maxStock !== undefined) queryParams.append('maxStock', filters.maxStock);
+      if (filters.minStock !== '' && filters.minStock !== undefined) queryParams.append('min_quantity', filters.minStock);
+      if (filters.maxStock !== '' && filters.maxStock !== undefined) queryParams.append('max_quantity', filters.maxStock);
 
       console.log('Final query:', queryParams.toString());
 
-      const response = await fetch(`http://localhost/inventory-api/inventory.php?${queryParams.toString()}`, {
-        method: 'GET'
-      });
+      const response = await axios.get(`http://127.0.0.1:8000/api/inventory/?${queryParams.toString()}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API Response:', data);
+      console.log('API Response:', response.data);
     
-      setItems(data);
+      setItems(response.data);
     } catch (error) {
       console.error('Error fetching inventory:', error);
     }
@@ -69,7 +57,7 @@ const InventoryPage = () => {
       
       <AdvancedSearch 
         categories={categories} 
-        suppliers={suppliers} 
+        suppliers={[]} 
         onSearch={handleSearch} 
       />
 
@@ -99,7 +87,7 @@ const InventoryPage = () => {
                   <td className="border border-gray-300 p-2">{item.quantity}</td>
                   <td className="border border-gray-300 p-2">{item.reorder_level}</td>
                   <td className="border border-gray-300 p-2">{item.expiry_date}</td>
-                  <td className="border border-gray-300 p-2">{item.supplier_name}</td>
+                  <td className="border border-gray-300 p-2">{item.supplier}</td>
                 </tr>
               ))}
             </tbody>

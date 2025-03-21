@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // During development, point to the PHP API
 // Later, this will be changed to the Django API
-const API_URL = 'http://localhost/inventory-api';
+const API_URL = 'http://127.0.0.1:8000/api/';
 
 const api = axios.create({
   baseURL: API_URL,

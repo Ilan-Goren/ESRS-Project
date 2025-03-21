@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { login } from '../services/authService';
+import axios from 'axios'; // Import axios
 import { useAuth } from '../context/AuthContext';
 
 // Import images
@@ -24,15 +24,9 @@ const MergedLogin = () => {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
-  // No predefined email addresses, allowing multiple users per role
-
   const handleIconClick = (role: string) => {
     setSelectedRole(role);
-    
-    // Reset form fields when changing roles
     reset();
-    
-    // Clear any existing error
     setError(null);
   };
 
@@ -42,43 +36,35 @@ const MergedLogin = () => {
       return;
     }
 
-    // No email validation against predefined emails - allow any email for the selected role
-
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await login({
-        email: data.email,
-        password: data.password,
-        role: selectedRole
+      const response = await axios.post('http://127.0.0.1:8000/api/token/', {
+        username: data.email,
+        password: data.password
       });
-      
-      // Check if user role matches the selected role
-      if (response.user.role !== selectedRole) {
-        setError('Invalid login credentials. Please try again.');
-        setLoading(false);
-        return;
-      }
-      
-      // Save token and user
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      // Update auth context
-      setUser(response.user);
-      
-      // Redirect based on role
+
+      const { access, refresh } = response.data;
+
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+
+      const user = { email: data.email, role: selectedRole };
+      localStorage.setItem('user', JSON.stringify(user));
+
+      setUser(user);
+
       const redirectMap: Record<string, string> = {
         admin: '/admin',
         manager: '/manager',
         staff: '/staff',
         supplier: '/supplier'
       };
-      
-      navigate(redirectMap[response.user.role] || '/');
+
+      navigate(redirectMap[selectedRole] || '/');
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      setError('Invalid username or password. Please try again.');
       console.error(err);
     } finally {
       setLoading(false);
