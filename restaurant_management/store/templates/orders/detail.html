@@ -1,0 +1,291 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Order #{{ order.id }} | Restaurant Management System{% endblock %}
+
+{% block page_title %}Order Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Order #{{ order.id }}</h1>
+            <p class="mb-0">View order details and items</p>
+        </div>
+        <div>
+            <a href="{% url 'store:orders_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Orders
+            </a>
+            {% if request.user.profile.role != 'staff' %}
+            <a href="{% url 'store:order_edit' order.id %}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i> Edit Order
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Order Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Order Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <th width="30%">Order Number:</th>
+                                    <td>{{ order.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge bg-info">Shipped</span>
+                                        {% elif order.status == 'delivered' %}
+                                            <span class="badge bg-success">Delivered</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Order Date:</th>
+                                    <td>{{ order.order_date|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Expected Delivery:</th>
+                                    <td>{{ order.expected_delivery|date:"M d, Y"|default:"Not specified" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created By:</th>
+                                    <td>{{ order.created_by.username|default:"System" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Supplier Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Supplier Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <th width="30%">Supplier Name:</th>
+                                    <td>{{ order.supplier.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Contact Info:</th>
+                                    <td>{{ order.supplier.contact_info|default:"N/A" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email:</th>
+                                    <td>{{ order.supplier.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Phone:</th>
+                                    <td>{{ order.supplier.phone|default:"N/A" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Items -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Order Items</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Current Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.inventory.item_name }}</td>
+                            <td>{{ item.inventory.category|default:"N/A" }}</td>
+                            <td>{{ item.quantity_ordered }}</td>
+                            <td>
+                                {{ item.inventory.quantity }}
+                                {% if item.inventory.is_low_stock %}
+                                    <span class="badge bg-warning">Low Stock</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No items in this order.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Timeline (if applicable) -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Order Timeline</h6>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker bg-success"></div>
+                    <div class="timeline-content">
+                        <h6 class="timeline-title">Order Created</h6>
+                        <p class="timeline-date">{{ order.order_date|date:"M d, Y H:i" }}</p>
+                    </div>
+                </div>
+                
+                {% if order.status == 'shipped' or order.status == 'delivered' %}
+                <div class="timeline-item">
+                    <div class="timeline-marker bg-info"></div>
+                    <div class="timeline-content">
+                        <h6 class="timeline-title">Order Shipped</h6>
+                        <p class="timeline-date">Not recorded</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if order.status == 'delivered' %}
+                <div class="timeline-item">
+                    <div class="timeline-marker bg-primary"></div>
+                    <div class="timeline-content">
+                        <h6 class="timeline-title">Order Delivered</h6>
+                        <p class="timeline-date">Not recorded</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if order.status == 'cancelled' %}
+                <div class="timeline-item">
+                    <div class="timeline-marker bg-danger"></div>
+                    <div class="timeline-content">
+                        <h6 class="timeline-title">Order Cancelled</h6>
+                        <p class="timeline-date">Not recorded</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body d-flex justify-content-between">
+                    <div>
+                        {% if request.user.profile.role != 'staff' %}
+                            {% if order.status == 'pending' %}
+                            <a href="{% url 'store:order_approve' order.id %}" class="btn btn-success me-2">
+                                <i class="fas fa-check me-2"></i> Approve Order
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'store:order_delete' order.id %}" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i> Delete Order
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <button onclick="window.print()" class="btn btn-secondary">
+                            <i class="fas fa-print me-2"></i> Print Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Timeline styles */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 9px;
+        height: 100%;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+    }
+    
+    .timeline-content {
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .timeline-title {
+        margin-bottom: 5px;
+    }
+    
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+    
+    @media print {
+        .sidebar, .topbar, .btn, .nav-item, .card-header {
+            display: none !important;
+        }
+        
+        .content-wrapper {
+            margin-left: 0 !important;
+        }
+        
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        .card-body {
+            padding: 0 !important;
+        }
+    }
+</style>
+{% endblock %}

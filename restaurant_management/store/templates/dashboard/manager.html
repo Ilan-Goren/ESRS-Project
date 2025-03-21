@@ -1,0 +1,200 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Manager Dashboard | Restaurant Management System{% endblock %}
+
+{% block page_title %}Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Stats Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary h-100 py-2">
+                <div class="card-body">
+                    <div class="stats-card">
+                        <div class="stats-icon" style="background-color: rgba(92, 107, 192, 0.1); color: #5c6bc0;">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h5>Total Inventory</h5>
+                            <h2>{{ total_inventory }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning h-100 py-2">
+                <div class="card-body">
+                    <div class="stats-card">
+                        <div class="stats-icon" style="background-color: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h5>Low Stock Items</h5>
+                            <h2>{{ low_stock_items }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info h-100 py-2">
+                <div class="card-body">
+                    <div class="stats-card">
+                        <div class="stats-icon" style="background-color: rgba(92, 207, 192, 0.1); color: #5ccfc0;">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h5>Total Orders</h5>
+                            <h2>{{ total_orders }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success h-100 py-2">
+                <div class="card-body">
+                    <div class="stats-card">
+                        <div class="stats-icon" style="background-color: rgba(76, 175, 80, 0.1); color: #4caf50;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h5>Pending Orders</h5>
+                            <h2>{{ pending_orders }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Orders -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Recent Orders</h6>
+                    <a href="{% url 'store:orders_list' %}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Supplier</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ order.supplier.name }}</td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge bg-info">Shipped</span>
+                                        {% elif order.status == 'delivered' %}
+                                            <span class="badge bg-success">Delivered</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.order_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'store:order_detail' order.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No recent orders found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventory Alert -->
+        <div class="col-xl-4 col-lg-5">
+            <!-- Expiring Inventory -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Expiring Soon</h6>
+                    <a href="{% url 'store:inventory_expiring' %}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Expiry Date</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in expiring_soon %}
+                                <tr>
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.expiry_date|date:"M d, Y" }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No items expiring soon.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row gy-3">
+                        <div class="col-12">
+                            <a href="{% url 'store:inventory_add' %}" class="btn btn-info btn-block w-100">
+                                <i class="fas fa-plus-circle me-2"></i> Add Inventory
+                            </a>
+                        </div>
+                        <div class="col-12">
+                            <a href="{% url 'store:order_add' %}" class="btn btn-success btn-block w-100">
+                                <i class="fas fa-shopping-cart me-2"></i> Create Order
+                            </a>
+                        </div>
+                        <div class="col-12">
+                            <a href="{% url 'store:inventory_low_stock' %}" class="btn btn-warning btn-block w-100">
+                                <i class="fas fa-exclamation-triangle me-2"></i> View Low Stock
+                            </a>
+                        </div>
+                        <div class="col-12">
+                            <a href="{% url 'store:report_stock' %}" class="btn btn-secondary btn-block w-100">
+                                <i class="fas fa-chart-bar me-2"></i> Generate Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'store/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add New User | Restaurant Management System{% endblock %}
+
+{% block page_title %}Add New User{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Add New User</h1>
+            <p class="mb-0">Create a new user account with appropriate access level</p>
+        </div>
+        <div>
+            <a href="{% url 'store:users_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Users
+            </a>
+        </div>
+    </div>
+    
+    <!-- User Form -->
+    <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">User Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.username|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.password1|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.password2|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form.role|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'store:users_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i> Create User
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Role Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Role Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="font-weight-bold text-danger">Admin</h6>
+                                <p class="mb-0">Full access to all features including user management, reports, and system settings.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="font-weight-bold text-primary">Manager</h6>
+                                <p class="mb-0">Can manage inventory, orders, suppliers, and generate reports.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="font-weight-bold text-success">Staff</h6>
+                                <p class="mb-0">Can view inventory, place orders, and log item usage.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="font-weight-bold text-info">Supplier</h6>
+                                <p class="mb-0">Supplier users should be created through the supplier management interface.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
