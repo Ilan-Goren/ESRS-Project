@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import AdvancedSearch from '../../components/inventory/AdvancedSearch';
-import axios from 'axios';
+import api from '../../services/api';
 
 interface InventoryItem {
   id: number;
@@ -36,7 +36,7 @@ const InventoryPage = () => {
 
       console.log('Final query:', queryParams.toString());
 
-      const response = await axios.get(`http://127.0.0.1:8000/api/inventory/?${queryParams.toString()}`);
+    const response = await api.get(`inventory/?${queryParams.toString()}`);
 
       console.log('API Response:', response.data);
     
