@@ -16,6 +16,7 @@ class Supplier(models.Model):
         db_table = 'suppliers'
 
 class Inventory(models.Model):
+    sku = models.CharField(max_length=100, blank=True, null=True)
     item_name = models.CharField(max_length=255)
     category = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.IntegerField(default=0)

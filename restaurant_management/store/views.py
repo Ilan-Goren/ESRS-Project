@@ -6,16 +6,22 @@ from django.contrib import messages
 from django.db.models import Sum, Count, F, Q
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponseForbidden
+from rest_framework import generics
 import csv
 import datetime
 
 from django.contrib.auth.models import User  # Add this import statement
 from .models import Inventory, Supplier, Order, OrderItem, Transaction, UserProfile
+from .serializers import InventorySerializer
 from .forms import (
     UserLoginForm, UserRegisterForm, UserUpdateForm, UserProfileForm,
     InventoryForm, SupplierForm, OrderForm, OrderItemFormSet,
     TransactionForm, DateRangeForm, ExportForm
 )
+
+class InventoryListCreateView(generics.ListCreateAPIView):
+    queryset = Inventory.objects.all()
+    serializer_class = InventorySerializer
 
 # Custom decorator to check user roles
 def role_required(roles):
