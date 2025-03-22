@@ -15,7 +15,7 @@ const Sidebar = () => {
     // Admin routes
     { path: '/admin', label: 'Dashboard', roles: ['admin'] },
     { path: '/admin/inventory', label: 'Inventory', roles: ['admin'] },
-    { path: '/admin/users', label: 'Manage Users', roles: ['admin'] },
+    { path: '/admin/ManagerUser', label: 'Manage Users', roles: ['admin'] },
     { path: '/admin/reports', label: 'Reports & Analytics', roles: ['admin'] },
     { path: '/admin/settings', label: 'System Settings', roles: ['admin'] },
     

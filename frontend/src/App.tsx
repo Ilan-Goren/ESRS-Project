@@ -10,6 +10,7 @@ import StaffDashboard from './pages/staff/Dashboard';
 import SupplierDashboard from './pages/supplier/Dashboard';
 import NotFound from './pages/NotFound';
 import InventoryPage from './pages/admin/Inventory';
+import ManagerUserPage from './pages/admin/ManagerUser';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -82,6 +83,15 @@ function App() {
               element={
                 <ProtectedRoute roles={['admin']}>
                   <InventoryPage />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/ManagerUser" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <ManagerUserPage />
                 </ProtectedRoute>
               } 
             />
