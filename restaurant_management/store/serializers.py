@@ -26,3 +26,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
+
+class OrderCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id', 'inventory_item', 'quantity', 'status', 'supplier', 'created_at', 'updated_at']
