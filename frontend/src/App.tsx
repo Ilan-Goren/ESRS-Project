@@ -5,12 +5,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Import pages
 import Login from './pages/Login';
 import AdminDashboard from './pages/admin/Dashboard';
-import ManagerDashboard from './pages/manager/Dashboard';
-import StaffDashboard from './pages/staff/Dashboard';
-import SupplierDashboard from './pages/supplier/Dashboard';
-import NotFound from './pages/NotFound';
 import InventoryPage from './pages/admin/Inventory';
 import ManagerUserPage from './pages/admin/ManagerUser';
+import ReportPage from './pages/admin/Report';
+import SettingPage from './pages/admin/Setting';
+import ManagerDashboard from './pages/manager/Dashboard';
+import InventoryManagement from './pages/manager/Inventory';
+import ManageSuppliers from './pages/manager/Suppliers';
+import StaffDashboard from './pages/staff/Dashboard';
+import InventoryItem from './pages/staff/Inventory';
+import PlaceOrder from './pages/staff/Orders';
+import SupplierDashboard from './pages/supplier/Dashboard';
+import SupplierOrders from './pages/supplier/Orders';
+import SupplierDeliveries from './pages/supplier/Deliveries';
+import NotFound from './pages/NotFound';
+
 
 // Create a client
 const queryClient = new QueryClient();
@@ -50,33 +59,6 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            
-            <Route 
-              path="/manager/*" 
-              element={
-                <ProtectedRoute roles={['manager']}>
-                  <ManagerDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/staff/*" 
-              element={
-                <ProtectedRoute roles={['staff']}>
-                  <StaffDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/supplier/*" 
-              element={
-                <ProtectedRoute roles={['supplier']}>
-                  <SupplierDashboard />
-                </ProtectedRoute>
-              } 
-            />
 
             <Route 
               path="/admin/inventory" 
@@ -92,6 +74,104 @@ function App() {
               element={
                 <ProtectedRoute roles={['admin']}>
                   <ManagerUserPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/reports" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <ReportPage />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/settings" 
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <SettingPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/manager/*" 
+              element={
+                <ProtectedRoute roles={['manager']}>
+                  <ManagerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/manager/inventory" 
+              element={
+                <ProtectedRoute roles={['manager']}>
+                  <InventoryManagement />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/manager/suppliers" 
+              element={
+                <ProtectedRoute roles={['manager']}>
+                  <ManageSuppliers />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/staff/*" 
+              element={
+                <ProtectedRoute roles={['staff']}>
+                  <StaffDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/staff/inventory" 
+              element={
+                <ProtectedRoute roles={['staff']}>
+                  <InventoryItem />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/staff/orders" 
+              element={
+                <ProtectedRoute roles={['staff']}>
+                  <PlaceOrder />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/supplier/*" 
+              element={
+                <ProtectedRoute roles={['supplier']}>
+                  <SupplierDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/supplier/orders" 
+              element={
+                <ProtectedRoute roles={['supplier']}>
+                  <SupplierOrders />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/supplier/deliveries" 
+              element={
+                <ProtectedRoute roles={['supplier']}>
+                  <SupplierDeliveries />
                 </ProtectedRoute>
               } 
             />

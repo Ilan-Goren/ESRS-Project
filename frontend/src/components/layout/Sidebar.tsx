@@ -26,7 +26,7 @@ const Sidebar = () => {
     
     // Staff routes
     { path: '/staff', label: 'Dashboard', roles: ['staff'] },
-    { path: '/staff/inventory', label: 'View Stock Levels', roles: ['staff'] },
+    { path: '/staff/Inventory', label: 'View Stock Levels', roles: ['staff'] },
     { path: '/staff/orders', label: 'Place New Order', roles: ['staff'] },
     
     // Supplier routes
