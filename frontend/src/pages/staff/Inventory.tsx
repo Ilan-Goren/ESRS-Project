@@ -51,7 +51,7 @@ const InventoryView = () => {
               return (
                 <tr key={item.id}>
                   <td className="border p-1 text-center">{i + 1}</td>
-                  <td className="border p-1">{item.productName}</td>
+                  <td className="border p-1">{item.item_name}</td>
                   <td className="border p-1 text-center">{item.quantity}</td>
                   <td className="border p-1">{item.supplier}</td>
                 </tr>
