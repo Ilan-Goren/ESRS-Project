@@ -1,0 +1,444 @@
+/* 
+   Restaurant Management System
+   Main Stylesheet
+*/
+
+/* ===== Core Variables ===== */
+:root {
+    /* Primary Colors */
+    --primary: #4a6fb5;
+    --primary-dark: #3d5d99;
+    --primary-light: #7b93c9;
+    
+    /* Secondary Colors */
+    --secondary: #6c757d;
+    --secondary-light: #a9b1b8;
+    
+    /* Status Colors */
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --info: #17a2b8;
+    
+    /* Background Colors */
+    --bg-light: #f8f9fa;
+    --bg-medium: #e9ecef;
+    --bg-card: #ffffff;
+    
+    /* Text Colors */
+    --text-dark: #343a40;
+    --text-medium: #6c757d;
+    --text-light: #f8f9fa;
+    
+    /* Border & Shadow */
+    --border-color: #dee2e6;
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.2);
+    
+    /* Typography */
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --font-heading: var(--font-sans);
+    --font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    
+    /* Layout */
+    --sidebar-width: 250px;
+    --header-height: 60px;
+    --container-max-width: 1400px;
+    --border-radius: 0.5rem;
+    --transition-speed: 0.3s;
+    
+    /* Z-index layers */
+    --z-sidebar: 1030;
+    --z-header: 1020;
+    --z-modal: 1050;
+    --z-dropdown: 1000;
+}
+
+/* ===== Reset & Base Styles ===== */
+body {
+    font-family: var(--font-sans);
+    color: var(--text-dark);
+    background-color: var(--bg-light);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+/* ===== Layout Styles ===== */
+.container-fluid {
+    max-width: var(--container-max-width);
+    padding: 0 15px;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--z-sidebar);
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-speed);
+    overflow-y: auto;
+    padding-top: var(--header-height);
+}
+
+.content-wrapper {
+    padding: 25px 0;
+    min-height: calc(100vh - var(--header-height) - 60px); /* Account for header and footer */
+}
+
+/* ===== Sidebar Styles ===== */
+.sidebar-sticky {
+    position: relative;
+    top: 0;
+    height: calc(100vh - 60px);
+    padding-top: 1rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.nav-header {
+    color: var(--text-medium);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-left: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.nav-item {
+    margin-bottom: 0.2rem;
+}
+
+.nav-link {
+    padding: 0.75rem 1rem;
+    color: var(--text-dark);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.nav-link i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover {
+    background-color: rgba(74, 111, 181, 0.1);
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.nav-link.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+.nav-link.active i {
+    color: white;
+}
+
+/* ===== Header Styles ===== */
+.navbar {
+    height: var(--header-height);
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+/* ===== Card Styles ===== */
+.card {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card-title {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.card-footer {
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ===== Button Styles ===== */
+.btn {
+    font-weight: 500;
+    border-radius: 0.35rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ===== Table Styles ===== */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: var(--text-dark);
+}
+
+.table th {
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    padding: 0.75rem;
+    vertical-align: top;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid var(--border-color);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* ===== Badge Styles ===== */
+.badge {
+    font-weight: 500;
+    border-radius: 0.25rem;
+    padding: 0.35em 0.65em;
+}
+
+.badge-pill {
+    border-radius: 50rem;
+}
+
+/* ===== Form Styles ===== */
+.form-control {
+    border: 1px solid var(--border-color);
+    border-radius: 0.35rem;
+    padding: 0.5rem 1rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 0.2rem rgba(74, 111, 181, 0.25);
+}
+
+.form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+/* ===== Alert Styles ===== */
+.alert {
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.alert-dismissible .btn-close {
+    padding: 1.25rem;
+}
+
+/* ===== Footer Styles ===== */
+.footer {
+    background-color: var(--bg-medium);
+    color: var(--text-medium);
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ===== Status Colors ===== */
+.text-danger {
+    color: var(--danger) !important;
+}
+
+.text-warning {
+    color: var(--warning) !important;
+}
+
+.text-success {
+    color: var(--success) !important;
+}
+
+.text-info {
+    color: var(--info) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger) !important;
+}
+
+.bg-warning {
+    background-color: var(--warning) !important;
+}
+
+.bg-success {
+    background-color: var(--success) !important;
+}
+
+.bg-info {
+    background-color: var(--info) !important;
+}
+
+/* ===== Stats Card ===== */
+.stats-card {
+    transition: transform 0.3s;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    height: 100%;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stats-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+/* ===== Pagination ===== */
+.pagination {
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 0.25rem;
+}
+
+.page-link {
+    position: relative;
+    display: block;
+    padding: 0.5rem 0.75rem;
+    margin-left: -1px;
+    line-height: 1.25;
+    color: var(--primary);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+.page-item.active .page-link {
+    z-index: 3;
+    color: #fff;
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    main {
+        margin-left: 0 !important;
+    }
+}
+
+/* ===== Utilities ===== */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.shadow-sm {
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+    box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.rounded {
+    border-radius: var(--border-radius) !important;
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+
+.transition {
+    transition: all var(--transition-speed) ease !important;
+}

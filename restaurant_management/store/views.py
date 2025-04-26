@@ -1,0 +1,621 @@
+"""
+Views for the store application.
+
+These views handle all the functionality for store users (admins, managers, and staff),
+including authentication, inventory management, order processing, and reporting.
+"""
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.db.models import Sum, Count, F, Q
+from django.http import HttpResponseRedirect, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+from django.db import transaction as db_transaction
+
+from .models import UserProfile, Inventory, Order, OrderItem, Transaction, Supplier
+from .forms import (
+    UserRegistrationForm, CustomAuthenticationForm, InventoryForm, 
+    TransactionForm, OrderForm, OrderItemForm, OrderUpdateForm,
+    DateRangeForm, UserProfileForm
+)
+from .decorators import role_required
+
+
+def landing_page(request):
+    """
+    Landing page view that displays login options and redirects based on user role.
+    """
+    if request.user.is_authenticated:
+        try:
+            profile = request.user.profile
+            if profile.is_supplier:
+                return redirect('supplier:dashboard')
+            elif profile.is_admin:
+                return redirect('store:admin_dashboard')
+            elif profile.is_manager:
+                return redirect('store:manager_dashboard')
+            elif profile.is_staff:
+                return redirect('store:staff_dashboard')
+        except UserProfile.DoesNotExist:
+            # Default fallback if profile doesn't exist
+            return redirect('store:admin_dashboard')
+    
+    return render(request, 'landing_page.html')
+
+
+def register_user(request):
+    """
+    View for user registration.
+    """
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            with db_transaction.atomic():
+                user = form.save()
+                role = form.cleaned_data.get('role')
+                supplier = form.cleaned_data.get('supplier')
+                
+                UserProfile.objects.create(
+                    user=user,
+                    role=role
+                )
+                
+                if role == 'supplier' and supplier:
+                    # Create supplier-specific profile in the supplier app
+                    from supplier.models import SupplierProfile
+                    SupplierProfile.objects.create(
+                        user=user,
+                        supplier=supplier
+                    )
+                
+                messages.success(request, 'Account created successfully!')
+                return redirect('login')
+    else:
+        form = UserRegistrationForm()
+    
+    return render(request, 'registration/register.html', {'form': form})
+
+
+@login_required
+@role_required('admin')
+def admin_dashboard(request):
+    """
+    Dashboard view for admin users.
+    """
+    # Get summary statistics
+    total_inventory_items = Inventory.objects.count()
+    low_stock_items = Inventory.objects.filter(quantity__lte=F('reorder_level')).count()
+    expired_items = Inventory.objects.filter(expiry_date__lt=timezone.now().date()).count()
+    total_users = User.objects.count()
+    
+    # Get recent orders
+    recent_orders = Order.objects.select_related('supplier').order_by('-order_date')[:5]
+    
+    # Get inventory by category
+    inventory_by_category = Inventory.objects.values('category').annotate(
+        total=Count('id'),
+        total_quantity=Sum('quantity')
+    )
+    
+    context = {
+        'total_inventory_items': total_inventory_items,
+        'low_stock_items': low_stock_items,
+        'expired_items': expired_items,
+        'total_users': total_users,
+        'recent_orders': recent_orders,
+        'inventory_by_category': inventory_by_category,
+    }
+    
+    return render(request, 'store/admin_dashboard.html', context)
+
+
+@login_required
+@role_required('manager')
+def manager_dashboard(request):
+    """
+    Dashboard view for manager users.
+    """
+    # Get summary statistics
+    total_inventory_items = Inventory.objects.count()
+    low_stock_items = Inventory.objects.filter(quantity__lte=F('reorder_level'))
+    pending_orders = Order.objects.filter(status='pending').count()
+    
+    # Get recent transactions
+    recent_transactions = Transaction.objects.select_related(
+        'inventory', 'user__user'
+    ).order_by('-created_at')[:10]
+    
+    context = {
+        'total_inventory_items': total_inventory_items,
+        'low_stock_items': low_stock_items,
+        'pending_orders': pending_orders,
+        'recent_transactions': recent_transactions,
+    }
+    
+    return render(request, 'store/manager_dashboard.html', context)
+
+
+@login_required
+@role_required('staff')
+def staff_dashboard(request):
+    """
+    Dashboard view for staff users.
+    """
+    # Get summary statistics
+    low_stock_items = Inventory.objects.filter(quantity__lte=F('reorder_level'))
+    
+    # Get recent transactions by this user
+    recent_transactions = Transaction.objects.filter(
+        user=request.user.profile
+    ).select_related('inventory').order_by('-created_at')[:10]
+    
+    context = {
+        'low_stock_items': low_stock_items,
+        'recent_transactions': recent_transactions,
+    }
+    
+    return render(request, 'store/staff_dashboard.html', context)
+
+
+@login_required
+@role_required(['admin', 'manager', 'staff'])
+def inventory_list(request):
+    """
+    View to display a list of inventory items.
+    """
+    category = request.GET.get('category', '')
+    search = request.GET.get('search', '')
+    low_stock = request.GET.get('low_stock', False) == 'true'
+    
+    inventory_items = Inventory.objects.select_related('supplier').all()
+    
+    # Apply filters
+    if category:
+        inventory_items = inventory_items.filter(category=category)
+    
+    if search:
+        inventory_items = inventory_items.filter(
+            Q(item_name__icontains=search) | Q(sku__icontains=search)
+        )
+    
+    if low_stock:
+        inventory_items = inventory_items.filter(quantity__lte=F('reorder_level'))
+    
+    # Get unique categories for filter dropdown
+    categories = Inventory.objects.values_list('category', flat=True).distinct()
+    
+    # Pagination
+    paginator = Paginator(inventory_items, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'categories': categories,
+        'category': category,
+        'search': search,
+        'low_stock': low_stock,
+    }
+    
+    return render(request, 'store/inventory/view_stock.html', context)
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def add_inventory(request):
+    """
+    View to add a new inventory item.
+    """
+    if request.method == 'POST':
+        form = InventoryForm(request.POST)
+        if form.is_valid():
+            inventory_item = form.save()
+            
+            # Record transaction
+            Transaction.objects.create(
+                inventory=inventory_item,
+                user=request.user.profile,
+                quantity_used=inventory_item.quantity,
+                transaction_type='added'
+            )
+            
+            messages.success(request, 'Inventory item added successfully!')
+            return redirect('store:inventory_list')
+    else:
+        form = InventoryForm()
+    
+    return render(request, 'store/inventory/add_stock.html', {'form': form})
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def edit_inventory(request, pk):
+    """
+    View to edit an existing inventory item.
+    """
+    inventory_item = get_object_or_404(Inventory, pk=pk)
+    old_quantity = inventory_item.quantity
+    
+    if request.method == 'POST':
+        form = InventoryForm(request.POST, instance=inventory_item)
+        if form.is_valid():
+            inventory_item = form.save()
+            new_quantity = inventory_item.quantity
+            
+            # Record transaction if quantity changed
+            if new_quantity != old_quantity:
+                transaction_type = 'added' if new_quantity > old_quantity else 'removed'
+                quantity_diff = abs(new_quantity - old_quantity)
+                
+                Transaction.objects.create(
+                    inventory=inventory_item,
+                    user=request.user.profile,
+                    quantity_used=quantity_diff,
+                    transaction_type=transaction_type
+                )
+            
+            messages.success(request, 'Inventory item updated successfully!')
+            return redirect('store:inventory_list')
+    else:
+        form = InventoryForm(instance=inventory_item)
+    
+    return render(request, 'store/inventory/edit_stock.html', {
+        'form': form,
+        'inventory_item': inventory_item
+    })
+
+
+@login_required
+@role_required(['admin', 'manager', 'staff'])
+def inventory_transaction(request):
+    """
+    View to record inventory transactions (add, remove, adjust).
+    """
+    if request.method == 'POST':
+        form = TransactionForm(request.POST)
+        if form.is_valid():
+            transaction = form.save(commit=False)
+            transaction.user = request.user.profile
+            
+            inventory_item = transaction.inventory
+            old_quantity = inventory_item.quantity
+            
+            # Update inventory quantity based on transaction type
+            if transaction.transaction_type == 'added':
+                inventory_item.quantity += transaction.quantity_used
+            elif transaction.transaction_type == 'removed':
+                if inventory_item.quantity < transaction.quantity_used:
+                    messages.error(request, 'Insufficient inventory!')
+                    return render(request, 'store/inventory/transaction.html', {'form': form})
+                inventory_item.quantity -= transaction.quantity_used
+            elif transaction.transaction_type == 'adjusted':
+                inventory_item.quantity = transaction.quantity_used
+                transaction.quantity_used = abs(old_quantity - transaction.quantity_used)
+            
+            # Save inventory and transaction
+            with db_transaction.atomic():
+                inventory_item.save()
+                transaction.save()
+            
+            messages.success(request, 'Transaction recorded successfully!')
+            return redirect('store:inventory_list')
+    else:
+        form = TransactionForm()
+    
+    return render(request, 'store/inventory/transaction.html', {'form': form})
+
+
+@login_required
+@role_required(['admin', 'manager', 'staff'])
+def low_stock_alerts(request):
+    """
+    View to display items that are below their reorder level.
+    """
+    low_stock_items = Inventory.objects.filter(
+        quantity__lte=F('reorder_level')
+    ).select_related('supplier')
+    
+    return render(request, 'store/inventory/low_stock_alerts.html', {
+        'low_stock_items': low_stock_items
+    })
+
+
+@login_required
+@role_required(['admin', 'manager', 'staff'])
+def expiry_dates(request):
+    """
+    View to display items approaching or past their expiry date.
+    """
+    today = timezone.now().date()
+    thirty_days_later = today + timezone.timedelta(days=30)
+    
+    expired_items = Inventory.objects.filter(
+        expiry_date__lt=today
+    ).select_related('supplier')
+    
+    expiring_soon_items = Inventory.objects.filter(
+        expiry_date__gte=today,
+        expiry_date__lte=thirty_days_later
+    ).select_related('supplier')
+    
+    context = {
+        'expired_items': expired_items,
+        'expiring_soon_items': expiring_soon_items,
+    }
+    
+    return render(request, 'store/inventory/expiry_dates.html', context)
+
+
+@login_required
+@role_required(['admin', 'manager', 'staff'])
+def order_list(request):
+    """
+    View to display a list of orders.
+    """
+    status = request.GET.get('status', '')
+    supplier_id = request.GET.get('supplier', '')
+    
+    orders = Order.objects.select_related('supplier').all()
+    
+    # Apply filters
+    if status:
+        orders = orders.filter(status=status)
+    
+    if supplier_id:
+        orders = orders.filter(supplier_id=supplier_id)
+    
+    # Get suppliers for filter dropdown
+    suppliers = Supplier.objects.all()
+    
+    # Pagination
+    paginator = Paginator(orders.order_by('-order_date'), 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'suppliers': suppliers,
+        'status': status,
+        'supplier_id': supplier_id,
+    }
+    
+    return render(request, 'store/orders/order_list.html', context)
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def create_order(request):
+    """
+    View to create a new order.
+    """
+    if request.method == 'POST':
+        order_form = OrderForm(request.POST)
+        if order_form.is_valid():
+            order = order_form.save()
+            messages.success(request, 'Order created successfully!')
+            return redirect('store:add_order_items', order_id=order.id)
+    else:
+        order_form = OrderForm()
+    
+    return render(request, 'store/orders/create_order.html', {'form': order_form})
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def add_order_items(request, order_id):
+    """
+    View to add items to an order.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    
+    if request.method == 'POST':
+        form = OrderItemForm(request.POST)
+        if form.is_valid():
+            order_item = form.save(commit=False)
+            order_item.order = order
+            order_item.save()
+            
+            messages.success(request, 'Item added to order successfully!')
+            return redirect('store:add_order_items', order_id=order.id)
+    else:
+        form = OrderItemForm()
+    
+    # Get existing items in this order
+    order_items = OrderItem.objects.filter(order=order).select_related('inventory')
+    
+    context = {
+        'form': form,
+        'order': order,
+        'order_items': order_items,
+    }
+    
+    return render(request, 'store/orders/add_order_items.html', context)
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def update_order_status(request, order_id):
+    """
+    View to update the status of an order.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    
+    if request.method == 'POST':
+        form = OrderUpdateForm(request.POST, instance=order)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Order status updated successfully!')
+            return redirect('store:order_list')
+    else:
+        form = OrderUpdateForm(instance=order)
+    
+    return render(request, 'store/orders/update_status.html', {
+        'form': form,
+        'order': order
+    })
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def order_details(request, order_id):
+    """
+    View to display the details of an order.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    order_items = OrderItem.objects.filter(order=order).select_related('inventory')
+    
+    return render(request, 'store/orders/order_details.html', {
+        'order': order,
+        'order_items': order_items
+    })
+
+
+@login_required
+@role_required('admin')
+def manage_users(request):
+    """
+    View to display and manage all users.
+    """
+    users = User.objects.select_related('profile').all()
+    
+    return render(request, 'store/manage_users.html', {'users': users})
+
+
+@login_required
+@role_required('admin')
+def edit_user(request, user_id):
+    """
+    View to edit a user's information.
+    """
+    user = get_object_or_404(User, id=user_id)
+    
+    try:
+        profile = user.profile
+    except UserProfile.DoesNotExist:
+        profile = UserProfile.objects.create(user=user, role='staff')
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'User updated successfully!')
+            return redirect('store:manage_users')
+    else:
+        form = UserProfileForm(instance=profile)
+    
+    return render(request, 'store/edit_user.html', {
+        'form': form,
+        'user': user
+    })
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def stock_report(request):
+    """
+    View to generate a stock report.
+    """
+    # Get all inventory items grouped by category
+    inventory_by_category = {}
+    
+    for item in Inventory.objects.all():
+        category = item.category or 'Uncategorized'
+        if category not in inventory_by_category:
+            inventory_by_category[category] = []
+        inventory_by_category[category].append(item)
+    
+    return render(request, 'store/reports/stock_report.html', {
+        'inventory_by_category': inventory_by_category
+    })
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def order_summary(request):
+    """
+    View to generate an order summary report.
+    """
+    if request.method == 'POST':
+        form = DateRangeForm(request.POST)
+        if form.is_valid():
+            start_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['end_date']
+            
+            orders = Order.objects.filter(
+                order_date__gte=start_date,
+                order_date__lte=end_date
+            ).select_related('supplier')
+            
+            context = {
+                'form': form,
+                'orders': orders,
+                'start_date': start_date,
+                'end_date': end_date,
+            }
+            
+            return render(request, 'store/reports/order_summary.html', context)
+    else:
+        form = DateRangeForm()
+    
+    return render(request, 'store/reports/order_summary.html', {'form': form})
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def supplier_performance(request):
+    """
+    View to generate a supplier performance report.
+    """
+    suppliers = Supplier.objects.all()
+    supplier_stats = []
+    
+    for supplier in suppliers:
+        total_orders = Order.objects.filter(supplier=supplier).count()
+        delivered_on_time = Order.objects.filter(
+            supplier=supplier,
+            status='delivered',
+            expected_delivery__gte=F('order_date')
+        ).count()
+        
+        if total_orders > 0:
+            on_time_percentage = (delivered_on_time / total_orders) * 100
+        else:
+            on_time_percentage = 0
+        
+        supplier_stats.append({
+            'supplier': supplier,
+            'total_orders': total_orders,
+            'delivered_on_time': delivered_on_time,
+            'on_time_percentage': on_time_percentage,
+        })
+    
+    return render(request, 'store/reports/supplier_performance.html', {
+        'supplier_stats': supplier_stats
+    })
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def configure_settings(request):
+    """
+    View to configure system settings.
+    """
+    # Placeholder for system settings
+    return render(request, 'store/configure_settings.html')
+
+
+@login_required
+@role_required(['admin', 'manager'])
+def manage_suppliers(request):
+    """
+    View to manage suppliers.
+    """
+    suppliers = Supplier.objects.all()
+    
+    return render(request, 'store/manage_suppliers.html', {'suppliers': suppliers})

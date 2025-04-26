@@ -1,0 +1,793 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load store_extras %}
+
+{% block title %}Inventory Management - Restaurant Management System{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item active">Inventory Management</li>
+{% endblock %}
+
+{% block page_title %}Inventory Management{% endblock %}
+
+{% block page_actions %}
+    {% if user.profile.is_admin or user.profile.is_manager %}
+    <div class="btn-group">
+        <a href="{% url 'store:add_inventory' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i> Add New Item
+        </a>
+        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{% url 'store:inventory_transaction' %}"><i class="fas fa-exchange-alt me-2"></i> Record Transaction</a></li>
+            <li><a class="dropdown-item" href="{% url 'store:stock_report' %}"><i class="fas fa-file-export me-2"></i> Export Inventory</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#bulkUpdateModal" data-bs-toggle="modal"><i class="fas fa-edit me-2"></i> Bulk Update</a></li>
+        </ul>
+    </div>
+    {% else %}
+    <a href="{% url 'store:inventory_transaction' %}" class="btn btn-primary">
+        <i class="fas fa-exchange-alt me-2"></i> Record Transaction
+    </a>
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-form {
+        background-color: #f8f9fa;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .inventory-card {
+        transition: all 0.3s;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        height: 100%;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        position: relative;
+    }
+    
+    .inventory-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .inventory-card .card-header {
+        border-bottom: none;
+        background-color: rgba(0, 0, 0, 0.03);
+        padding: 0.75rem 1rem;
+    }
+    
+    .inventory-card .badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 1;
+    }
+    
+    .inventory-card.low-stock {
+        border-color: #ffc107;
+    }
+    
+    .inventory-card.expired {
+        border-color: #dc3545;
+    }
+    
+    .card-actions {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+    }
+    
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    
+    .inventory-card .progress {
+        height: 8px;
+        margin-bottom: 0.5rem;
+        border-radius: 0.5rem;
+    }
+    
+    .quantity-indicator {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .view-switcher .btn {
+        border-radius: 0;
+    }
+    
+    .view-switcher .btn:first-child {
+        border-top-left-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
+    }
+    
+    .view-switcher .btn:last-child {
+        border-top-right-radius: 0.25rem;
+        border-bottom-right-radius: 0.25rem;
+    }
+    
+    .inventory-card .supplier-badge {
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+        z-index: 1;
+        font-size: 0.75rem;
+    }
+    
+    .inventory-table tbody tr {
+        transition: all 0.3s;
+    }
+    
+    .inventory-table tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    .search-clear {
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        cursor: pointer;
+    }
+    
+    .search-clear:hover {
+        color: #343a40;
+    }
+    
+    .item-actions .dropdown-menu {
+        min-width: 12rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Filter Form -->
+    <div class="filter-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Search by name or SKU" name="search" value="{{ search }}" id="searchInput">
+                    {% if search %}
+                    <span class="search-clear" id="searchClear" title="Clear search"><i class="fas fa-times-circle"></i></span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <select class="form-select" name="category" id="categoryFilter">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat|default:"Uncategorized" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <select class="form-select" name="supplier" id="supplierFilter">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if supplier_id == supplier.id %}selected{% endif %}>{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="d-flex">
+                    <div class="form-check form-switch me-3 mt-2">
+                        <input class="form-check-input" type="checkbox" id="lowStockSwitch" name="low_stock" value="true" {% if low_stock %}checked{% endif %}>
+                        <label class="form-check-label" for="lowStockSwitch">Low Stock Only</label>
+                    </div>
+                    
+                    <div class="btn-group view-switcher ms-auto">
+                        <button type="button" class="btn btn-outline-secondary active" id="gridViewBtn" title="Grid View">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="listViewBtn" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hidden submit button for enter key to work -->
+            <button type="submit" class="d-none"></button>
+        </form>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary rounded-pill fs-6">{{ page_obj.paginator.count }}</span>
+                    <span class="ms-2">Items found</span>
+                    {% if search or category or supplier_id or low_stock %}
+                    <a href="{% url 'store:inventory_list' %}" class="btn btn-sm btn-outline-secondary ms-3">
+                        <i class="fas fa-times me-1"></i> Clear filters
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-sort me-1"></i> Sort by
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdown">
+                        <li><a class="dropdown-item" href="?sort=name">Name A-Z</a></li>
+                        <li><a class="dropdown-item" href="?sort=-name">Name Z-A</a></li>
+                        <li><a class="dropdown-item" href="?sort=quantity">Quantity (Low to High)</a></li>
+                        <li><a class="dropdown-item" href="?sort=-quantity">Quantity (High to Low)</a></li>
+                        <li><a class="dropdown-item" href="?sort=expiry_date">Expiry Date (Soonest First)</a></li>
+                        <li><a class="dropdown-item" href="?sort=category">Category</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Inventory Items Grid -->
+    <div id="gridView">
+        {% if page_obj %}
+            <div class="row" id="inventoryGrid">
+                {% for item in page_obj %}
+                    <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                        <div class="card inventory-card {% if item.is_low_stock %}low-stock{% elif item.is_expired %}expired{% endif %}" 
+                             data-quantity="{{ item.quantity }}" 
+                             data-reorder-level="{{ item.reorder_level }}"
+                             data-expiry-date="{{ item.expiry_date|date:'Y-m-d' }}"
+                             data-category="{{ item.category }}">
+                             
+                            <span class="supplier-badge badge bg-secondary">{{ item.supplier.name|default:"No Supplier" }}</span>
+                            
+                            {% if item.is_low_stock %}
+                                <span class="badge bg-warning">Low Stock</span>
+                            {% elif item.is_expired %}
+                                <span class="badge bg-danger">Expired</span>
+                            {% endif %}
+                            
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span class="badge bg-{% if item.category == 'Vegetables' %}success{% elif item.category == 'Dairy' %}warning{% elif item.category == 'Meat' %}danger{% else %}secondary{% endif %} rounded-pill">
+                                    {{ item.category|default:"Uncategorized" }}
+                                </span>
+                                
+                                <span class="text-muted small">
+                                    {% if item.sku %}SKU: {{ item.sku }}{% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.item_name }}</h5>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <p class="card-text mb-1 d-flex justify-content-between">
+                                            <span>Quantity:</span>
+                                            <span>Reorder Level: {{ item.reorder_level }}</span>
+                                        </p>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-{% if item.is_low_stock %}warning{% elif item.quantity == 0 %}danger{% else %}success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ item.quantity|percentage:item.reorder_level|multiply:2 }}%"
+                                                 aria-valuenow="{{ item.quantity }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="{{ item.reorder_level|multiply:2 }}">
+                                            </div>
+                                        </div>
+                                        <p class="text-center mt-2">
+                                            <span class="quantity-indicator {% if item.is_low_stock %}text-warning{% elif item.quantity == 0 %}text-danger{% else %}text-success{% endif %}">
+                                                {{ item.quantity }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {% if item.expiry_date %}
+                                    <p class="card-text text-center">
+                                        <span class="badge {% if item.is_expired %}bg-danger{% elif item.expiry_date|days_until < 7 %}bg-warning{% else %}bg-info{% endif %} rounded-pill">
+                                            {% if item.is_expired %}
+                                                Expired {{ item.expiry_date|days_ago }} days ago
+                                            {% else %}
+                                                Expires in {{ item.expiry_date|days_until }} days
+                                            {% endif %}
+                                        </span>
+                                    </p>
+                                {% endif %}
+                                
+                                <div class="card-actions mt-3">
+                                    <div class="btn-group">
+                                        {% if user.profile.is_admin or user.profile.is_manager %}
+                                            <a href="{% url 'store:edit_inventory' item.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        {% endif %}
+                                        
+                                        <a href="{% url 'store:inventory_transaction' %}?inventory_id={{ item.id }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </a>
+                                        
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#itemDetailsModal{{ item.id }}">
+                                                    <i class="fas fa-info-circle me-2"></i> View Details
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{% url 'store:inventory_transaction' %}?inventory_id={{ item.id }}&transaction_type=added">
+                                                    <i class="fas fa-plus-circle me-2"></i> Add Stock
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{% url 'store:inventory_transaction' %}?inventory_id={{ item.id }}&transaction_type=removed">
+                                                    <i class="fas fa-minus-circle me-2"></i> Remove Stock
+                                                </a></li>
+                                                {% if user.profile.is_admin or user.profile.is_manager %}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="{% url 'store:create_order' %}?supplier={{ item.supplier.id }}">
+                                                    <i class="fas fa-cart-plus me-2"></i> Create Order
+                                                </a></li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer bg-white">
+                                <small class="text-muted">Last updated: {{ item.last_updated|date:"M d, Y H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Item Details Modal -->
+                    <div class="modal fade" id="itemDetailsModal{{ item.id }}" tabindex="-1" aria-labelledby="itemDetailsModalLabel{{ item.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="itemDetailsModalLabel{{ item.id }}">{{ item.item_name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">SKU:</div>
+                                        <div class="col-8">{{ item.sku|default:"Not assigned" }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Category:</div>
+                                        <div class="col-8">{{ item.category|default:"Uncategorized" }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Quantity:</div>
+                                        <div class="col-8">{{ item.quantity }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Reorder Level:</div>
+                                        <div class="col-8">{{ item.reorder_level }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Expiry Date:</div>
+                                        <div class="col-8">{{ item.expiry_date|date:"M d, Y"|default:"Not set" }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Supplier:</div>
+                                        <div class="col-8">{{ item.supplier.name|default:"Not assigned" }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 fw-bold">Last Updated:</div>
+                                        <div class="col-8">{{ item.last_updated|date:"M d, Y H:i" }}</div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    {% if user.profile.is_admin or user.profile.is_manager %}
+                                    <a href="{% url 'store:edit_inventory' item.id %}" class="btn btn-primary">Edit Item</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> No inventory items found matching your filters.
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Inventory Items List (Hidden by default) -->
+    <div id="listView" style="display: none;">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover inventory-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Reorder Level</th>
+                                <th>Supplier</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in page_obj %}
+                                <tr class="{% if item.is_low_stock %}table-warning{% elif item.is_expired %}table-danger{% endif %}">
+                                    <td>{{ item.item_name }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if item.category == 'Vegetables' %}success{% elif item.category == 'Dairy' %}warning{% elif item.category == 'Meat' %}danger{% else %}secondary{% endif %} rounded-pill">
+                                            {{ item.category|default:"Uncategorized" }}
+                                        </span>
+                                    </td>
+                                    <td class="{% if item.is_low_stock %}text-warning fw-bold{% elif item.quantity == 0 %}text-danger fw-bold{% endif %}">
+                                        {{ item.quantity }}
+                                    </td>
+                                    <td>{{ item.reorder_level }}</td>
+                                    <td>{{ item.supplier.name|default:"No supplier" }}</td>
+                                    <td>
+                                        {% if item.expiry_date %}
+                                            <span class="{% if item.is_expired %}text-danger{% elif item.expiry_date|days_until < 7 %}text-warning{% endif %}">
+                                                {{ item.expiry_date|date:"M d, Y" }}
+                                            </span>
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.is_expired %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% elif item.is_low_stock %}
+                                            <span class="badge bg-warning">Low Stock</span>
+                                        {% else %}
+                                            <span class="badge bg-success">In Stock</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="dropdown item-actions text-end">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ item.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ item.id }}">
+                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#itemDetailsModal{{ item.id }}">
+                                                    <i class="fas fa-info-circle me-2"></i> View Details
+                                                </a></li>
+                                                
+                                                {% if user.profile.is_admin or user.profile.is_manager %}
+                                                <li><a class="dropdown-item" href="{% url 'store:edit_inventory' item.id %}">
+                                                    <i class="fas fa-edit me-2"></i> Edit Item
+                                                </a></li>
+                                                {% endif %}
+                                                
+                                                <li><a class="dropdown-item" href="{% url 'store:inventory_transaction' %}?inventory_id={{ item.id }}&transaction_type=added">
+                                                    <i class="fas fa-plus-circle me-2"></i> Add Stock
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{% url 'store:inventory_transaction' %}?inventory_id={{ item.id }}&transaction_type=removed">
+                                                    <i class="fas fa-minus-circle me-2"></i> Remove Stock
+                                                </a></li>
+                                                
+                                                {% if user.profile.is_admin or user.profile.is_manager %}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="{% url 'store:create_order' %}?supplier={{ item.supplier.id }}">
+                                                    <i class="fas fa-cart-plus me-2"></i> Order More
+                                                </a></li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-3">No inventory items found matching your filters.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination-container">
+            <nav aria-label="Inventory pagination">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if supplier_id %}&supplier={{ supplier_id }}{% endif %}{% if low_stock %}&low_stock=true{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if supplier_id %}&supplier={{ supplier_id }}{% endif %}{% if low_stock %}&low_stock=true{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if supplier_id %}&supplier={{ supplier_id }}{% endif %}{% if low_stock %}&low_stock=true{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if supplier_id %}&supplier={{ supplier_id }}{% endif %}{% if low_stock %}&low_stock=true{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if supplier_id %}&supplier={{ supplier_id }}{% endif %}{% if low_stock %}&low_stock=true{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+    
+    <!-- Bulk Update Modal -->
+    <div class="modal fade" id="bulkUpdateModal" tabindex="-1" aria-labelledby="bulkUpdateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkUpdateModalLabel">Bulk Update Inventory Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bulkUpdateForm">
+                        <div class="mb-3">
+                            <label for="bulkCategory" class="form-label">Select Items by Category</label>
+                            <select class="form-select" id="bulkCategory">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat }}">{{ cat|default:"Uncategorized" }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bulkSupplier" class="form-label">Or Select Items by Supplier</label>
+                            <select class="form-select" id="bulkSupplier">
+                                <option value="">All Suppliers</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Update Field</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="updateField" id="updateCategory" value="category">
+                                <label class="form-check-label" for="updateCategory">
+                                    Category
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="updateField" id="updateReorderLevel" value="reorder_level">
+                                <label class="form-check-label" for="updateReorderLevel">
+                                    Reorder Level
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="updateField" id="updateSupplier" value="supplier">
+                                <label class="form-check-label" for="updateSupplier">
+                                    Supplier
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="newValueContainer" style="display: none;">
+                            <!-- This section will be dynamically updated based on the selected field -->
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="bulkUpdateSubmit">Update Items</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle view switching
+        const gridViewBtn = document.getElementById('gridViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+        
+        gridViewBtn.addEventListener('click', function() {
+            gridView.style.display = 'block';
+            listView.style.display = 'none';
+            
+            gridViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+            
+            // Store preference in localStorage
+            localStorage.setItem('inventoryViewPreference', 'grid');
+        });
+        
+        listViewBtn.addEventListener('click', function() {
+            gridView.style.display = 'none';
+            listView.style.display = 'block';
+            
+            listViewBtn.classList.add('active');
+            gridViewBtn.classList.remove('active');
+            
+            // Store preference in localStorage
+            localStorage.setItem('inventoryViewPreference', 'list');
+        });
+        
+        // Load user preference from localStorage
+        const viewPreference = localStorage.getItem('inventoryViewPreference');
+        if (viewPreference === 'list') {
+            listViewBtn.click();
+        }
+        
+        // Auto-submit on filter change
+        const categoryFilter = document.getElementById('categoryFilter');
+        const supplierFilter = document.getElementById('supplierFilter');
+        const lowStockSwitch = document.getElementById('lowStockSwitch');
+        
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+        
+        if (supplierFilter) {
+            supplierFilter.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+        
+        if (lowStockSwitch) {
+            lowStockSwitch.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+        
+        // Handle search clear button
+        const searchClear = document.getElementById('searchClear');
+        const searchInput = document.getElementById('searchInput');
+        
+        if (searchClear && searchInput) {
+            searchClear.addEventListener('click', function() {
+                searchInput.value = '';
+                searchInput.form.submit();
+            });
+        }
+        
+        // Highlight low stock and expired items
+        highlightInventoryStatus();
+        
+        // Bulk update functionality
+        const updateFieldRadios = document.querySelectorAll('input[name="updateField"]');
+        const newValueContainer = document.getElementById('newValueContainer');
+        
+        updateFieldRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                newValueContainer.style.display = 'block';
+                
+                // Clear previous content
+                newValueContainer.innerHTML = '';
+                
+                // Create appropriate input based on selected field
+                const selectedField = this.value;
+                let fieldHTML = '';
+                
+                switch(selectedField) {
+                    case 'category':
+                        fieldHTML = `
+                            <label for="newCategory" class="form-label">New Category</label>
+                            <input type="text" class="form-control" id="newCategory" placeholder="Enter new category">
+                        `;
+                        break;
+                    case 'reorder_level':
+                        fieldHTML = `
+                            <label for="newReorderLevel" class="form-label">New Reorder Level</label>
+                            <input type="number" class="form-control" id="newReorderLevel" min="1" placeholder="Enter new reorder level">
+                        `;
+                        break;
+                    case 'supplier':
+                        fieldHTML = `
+                            <label for="newSupplier" class="form-label">New Supplier</label>
+                            <select class="form-select" id="newSupplier">
+                                <option value="">Select Supplier</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                                {% endfor %}
+                            </select>
+                        `;
+                        break;
+                }
+                
+                newValueContainer.innerHTML = fieldHTML;
+            });
+        });
+        
+        // Handle bulk update submission
+        const bulkUpdateSubmit = document.getElementById('bulkUpdateSubmit');
+        
+        if (bulkUpdateSubmit) {
+            bulkUpdateSubmit.addEventListener('click', function() {
+                // Simulate processing
+                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+                this.disabled = true;
+                
+                // In a real implementation, you would submit this data via AJAX
+                // For now, just simulate success after a delay
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bulkUpdateModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    const alertHTML = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> Bulk update completed successfully.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    
+                    document.querySelector('.messages').innerHTML = alertHTML;
+                    
+                    // Reset button state
+                    this.innerHTML = 'Update Items';
+                    this.disabled = false;
+                }, 1500);
+            });
+        }
+    });
+</script>
+{% endblock %}
