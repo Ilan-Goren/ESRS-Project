@@ -161,10 +161,3 @@ For production deployment:
 4. Use a production-ready web server (Gunicorn, uWSGI)
 5. Configure HTTPS with a valid SSL certificate
 
-## License
-
-[MIT License](LICENSE)
-
-## Contributors
-
-- Your Name <your.email@example.com>
