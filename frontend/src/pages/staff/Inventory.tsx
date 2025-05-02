@@ -10,7 +10,9 @@ const InventoryView = () => {
   }, []);
 
   function load() {
-    fetch('http://localhost/inventory-api/managerInventory.php?search=' + encodeURIComponent(search))
+    fetch(`http://127.0.0.1:8000/api/inventory/?search=${encodeURIComponent(search)}`, {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setList(data); })
       .catch(function() { alert('Failed to load'); });

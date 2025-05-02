@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 
 const ManagerUserPage = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'admin' });
   const [showAdd, setShowAdd] = useState(false);
@@ -14,16 +14,35 @@ const ManagerUserPage = () => {
   }, []);
 
   function load() {
-    fetch('http://localhost/inventory-api/managerUser.php?search=' + encodeURIComponent(search))
+    const token = localStorage.getItem('access_token');
+    fetch(`http://127.0.0.1:8000/api/users/?search=${encodeURIComponent(search)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      }
+    })
       .then(function(res) { return res.json(); })
-      .then(function(data) { setUsers(data); })
+      .then(function(data) {
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          console.error('Expected an array but got:', data);
+          setUsers([]);
+        }
+      })
       .catch(function() { alert('Load failed'); });
   }
 
   function addUser() {
-    fetch('http://localhost/inventory-api/managerUser.php', {
+    const token = localStorage.getItem('access_token');
+    fetch('http://127.0.0.1:8000/api/users/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      credentials: 'include',
       body: JSON.stringify(newUser)
     }).then(function() {
       setShowAdd(false);
@@ -33,12 +52,15 @@ const ManagerUserPage = () => {
   }
 
   function updateUser() {
-    fetch('http://localhost/inventory-api/managerUser.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const token = localStorage.getItem('access_token');
+    fetch(`http://127.0.0.1:8000/api/users/${editUser.id}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      credentials: 'include',
       body: JSON.stringify({
-        action: 'update',
-        id: editUser.id,
         name: editForm.name,
         role: editForm.role
       })
@@ -50,8 +72,13 @@ const ManagerUserPage = () => {
 
   function removeUser(id) {
     if (!window.confirm('Delete this user?')) return;
-    fetch('http://localhost/inventory-api/managerUser.php?id=' + id, {
-      method: 'DELETE'
+    const token = localStorage.getItem('access_token');
+    fetch(`http://127.0.0.1:8000/api/users/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      credentials: 'include'
     }).then(function() { load(); });
   }
 

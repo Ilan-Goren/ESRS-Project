@@ -41,8 +41,12 @@ const InventoryPage = () => {
 
       console.log('Final query:', queryParams.toString());
 
-      const response = await fetch(`http://localhost/inventory-api/inventory.php?${queryParams.toString()}`, {
-        method: 'GET'
+      const response = await fetch(`http://127.0.0.1:8000/api/inventory/?${queryParams.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {

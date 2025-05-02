@@ -20,12 +20,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = getCurrentUser();
       if (currentUser) {
         setUser(currentUser);
+        if (currentUser?.token) {
+          localStorage.setItem('token', currentUser.token);
+        }
       }
       setLoading(false);
     };
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+    if (user?.token) {
+      localStorage.setItem('token', user.token);
+    }
+  }, [user]);
 
   const value = {
     user,

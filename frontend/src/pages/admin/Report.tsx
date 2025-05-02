@@ -8,19 +8,27 @@ const ReportPage = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  function exportReport() {
+  async function exportReport() {
     setLoading(true);
     setMessage('');
-    setTimeout(function() {
-      try {
-        console.log(type, range, format);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/reports/export/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type, range, format }),
+      });
+
+      if (response.ok) {
         setMessage('Export done successfully!');
-      } catch (error) {
+      } else {
         setMessage('Failed to export report.');
-      } finally {
-        setLoading(false);
       }
-    }, 2000);
+    } catch (error) {
+      setMessage('Failed to export report.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

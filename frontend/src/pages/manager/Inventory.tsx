@@ -16,7 +16,9 @@ const InventoryPage = () => {
   }, []);
 
   function fetchData() {
-    fetch('http://localhost/inventory-api/managerInventory.php?search=' + encodeURIComponent(search))
+    fetch(`http://127.0.0.1:8000/api/inventory/?search=${encodeURIComponent(search)}`, {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => {
         console.log('[Inventory List]', data);
@@ -31,9 +33,10 @@ const InventoryPage = () => {
   }
 
   function addItem() {
-    fetch('http://localhost/inventory-api/managerInventory.php', {
+    fetch('http://127.0.0.1:8000/api/inventory/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         name: addForm.product,
         quantity: addForm.quantity,
@@ -47,9 +50,10 @@ const InventoryPage = () => {
   }
 
   function updateItem() {
-    fetch('http://localhost/inventory-api/managerInventory.php?action=update', {
-      method: 'POST',
+    fetch(`http://127.0.0.1:8000/api/inventory/${editForm.id}/`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         id: editForm.id,
         item_name: editForm.productName,
@@ -64,8 +68,9 @@ const InventoryPage = () => {
 
   function delItem(id) {
     if (!window.confirm('Delete this item?')) return;
-    fetch('http://localhost/inventory-api/managerInventory.php?id=' + id, {
-      method: 'DELETE'
+    fetch(`http://127.0.0.1:8000/api/inventory/${id}/`, {
+      method: 'DELETE',
+      credentials: 'include'
     }).then(() => fetchData());
   }
 

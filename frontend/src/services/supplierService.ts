@@ -10,26 +10,26 @@ export interface Supplier {
 }
 
 export const getSuppliers = async (): Promise<Supplier[]> => {
-  const response = await api.get('/suppliers.php');
+  const response = await api.get('/suppliers/');
   return response.data;
 };
 
 export const getSupplier = async (id: number): Promise<Supplier> => {
-  const response = await api.get(`/suppliers.php?id=${id}`);
+  const response = await api.get(`/suppliers/${id}/`);
   return response.data;
 };
 
 export const createSupplier = async (supplier: Omit<Supplier, 'id' | 'created_at'>): Promise<{ id: number }> => {
-  const response = await api.post('/suppliers.php', supplier);
+  const response = await api.post('/suppliers/', supplier);
   return response.data;
 };
 
 export const updateSupplier = async (id: number, supplier: Partial<Supplier>): Promise<{ success: boolean }> => {
-  const response = await api.put(`/suppliers.php?id=${id}`, supplier);
+  const response = await api.put(`/suppliers/${id}/`, supplier);
   return response.data;
 };
 
 export const deleteSupplier = async (id: number): Promise<{ success: boolean }> => {
-  const response = await api.delete(`/suppliers.php?id=${id}`);
+  const response = await api.delete(`/suppliers/${id}/`);
   return response.data;
 };

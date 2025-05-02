@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// During development, point to the PHP API
-// Later, this will be changed to the Django API
-const API_URL = 'http://localhost/inventory-api';
+// During development, point to the Django API
+const API_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,9 +13,9 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },

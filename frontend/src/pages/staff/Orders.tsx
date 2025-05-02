@@ -10,11 +10,15 @@ const OrderPage = () => {
   const [msg, setMsg] = useState('');
 
   useEffect(function() {
-    fetch('http://localhost/inventory-api/inventory.php')
+    fetch('http://127.0.0.1:8000/api/inventory/', {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setItems(data); });
 
-    fetch('http://localhost/inventory-api/suppliers.php')
+    fetch('http://127.0.0.1:8000/api/suppliers/', {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setSuppliers(data); });
   }, []);
@@ -23,9 +27,10 @@ const OrderPage = () => {
     e.preventDefault();
     if (!itemId || !supplierId || qty <= 0) return;
 
-    fetch('http://localhost/inventory-api/placeOrder.php', {
+    fetch('http://127.0.0.1:8000/api/orders/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         inventory_id: itemId,
         quantity_ordered: qty,

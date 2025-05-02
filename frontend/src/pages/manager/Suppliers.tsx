@@ -13,21 +13,19 @@ const SupplierPage = () => {
   }, []);
 
   function load() {
-    fetch('http://localhost/inventory-api/supplierManager.php?search=' + encodeURIComponent(search))
+    fetch(`http://127.0.0.1:8000/api/suppliers/?search=${encodeURIComponent(search)}`, {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setList(data); });
   }
 
   function save() {
-    var data = { ...form };
-    if (editId) {
-      data.id = editId;
-      data.action = 'update';
-    }
-    fetch('http://localhost/inventory-api/supplierManager.php', {
-      method: 'POST',
+    fetch(`http://127.0.0.1:8000/api/suppliers/${editId ?? ''}`, {
+      method: editId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      credentials: 'include',
+      body: JSON.stringify({ ...form })
     }).then(function() {
       load();
       setForm({ name: '', email: '', phone: '', contact: '' });
@@ -38,8 +36,9 @@ const SupplierPage = () => {
 
   function remove(id) {
     if (!window.confirm('Delete this supplier?')) return;
-    fetch('http://localhost/inventory-api/supplierManager.php?id=' + id, {
-      method: 'DELETE'
+    fetch(`http://127.0.0.1:8000/api/suppliers/${id}/`, {
+      method: 'DELETE',
+      credentials: 'include'
     }).then(function() { load(); });
   }
 

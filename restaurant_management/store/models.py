@@ -29,8 +29,7 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.role}"
 
     class Meta:
-        db_table = 'users'
-        managed = False  # Using existing database table
+        managed = True
         
     @property
     def is_admin(self):

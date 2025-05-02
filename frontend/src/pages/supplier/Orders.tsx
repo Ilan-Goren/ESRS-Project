@@ -5,7 +5,9 @@ const SupplierOrders = () => {
   const [orders, setOrders] = useState([]);
 
   useEffect(function() {
-    fetch('http://localhost/inventory-api/supplierOrders.php')
+    fetch('http://127.0.0.1:8000/api/orders/supplier/', {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setOrders(data); })
       .catch(function() { alert('Load failed'); });

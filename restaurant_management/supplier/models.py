@@ -30,7 +30,7 @@ class SupplierProfile(models.Model):
         verbose_name_plural = "Supplier Profiles"
 
 
-class SupplierOrder(models.Model):
+class SupplierOrder(Order):
     """
     Proxy model for Order, providing supplier-specific methods and properties.
     This doesn't create a new table but provides a different interface to the orders table.

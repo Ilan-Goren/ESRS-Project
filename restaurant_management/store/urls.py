@@ -6,6 +6,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 
 from . import views
+from .views import InventoryListCreateAPIView, InventoryRetrieveUpdateDestroyAPIView, dashboard_api_view
 from .forms import CustomAuthenticationForm
 
 app_name = 'store'
@@ -45,4 +46,9 @@ urlpatterns = [
     
     # Supplier Management
     path('suppliers/', views.manage_suppliers, name='manage_suppliers'),
+    
+    # API Endpoints
+    path('api/inventory/', InventoryListCreateAPIView.as_view(), name='inventory_api_list_create'),
+    path('api/inventory/<int:pk>/', InventoryRetrieveUpdateDestroyAPIView.as_view(), name='inventory_api_detail'),
+    path('api/dashboard/', dashboard_api_view, name='dashboard_api'),
 ]

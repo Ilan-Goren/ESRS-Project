@@ -10,7 +10,9 @@ const AdminDashboard = () => {
   });
 
   useEffect(function() {
-    fetch('http://localhost/inventory-api/adminDashboard.php')
+    fetch('http://127.0.0.1:8000/api/dashboard/', {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) {
         setInfo({

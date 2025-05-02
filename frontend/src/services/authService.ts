@@ -1,4 +1,5 @@
 import api from './api';
+import TokenStorage from './TokenStorage';
 
 export interface LoginCredentials {
   email: string;
@@ -13,26 +14,36 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
+  access: string;
+  refresh: string;
   user: User;
 }
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  const response = await api.post('/auth.php', credentials);
-  return response.data;
+  try {
+    const response = await api.post('/auth/login/', {
+      username: credentials.email,
+      password: credentials.password,
+    });
+    TokenStorage.setUser(response.data.user);
+    TokenStorage.setAccessToken(response.data.access);
+    TokenStorage.setRefreshToken(response.data.refresh);
+    return response.data;
+  } catch (error: any) {
+    console.error('LOGIN ERROR', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const logout = (): void => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  TokenStorage.clear();
 };
 
 export const getCurrentUser = (): User | null => {
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
-  
+  const user = TokenStorage.getUser();
+  if (!user) return null;
   try {
-    return JSON.parse(userStr) as User;
+    return user as User;
   } catch (error) {
     return null;
   }

@@ -10,17 +10,20 @@ const DeliveriesPage = () => {
   }, []);
 
   function load() {
-    fetch('http://localhost/inventory-api/supplierOrders.php')
+    fetch('http://127.0.0.1:8000/api/orders/supplier/', {
+      credentials: 'include'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) { setOrders(data); })
       .catch(function() { alert('Load failed'); });
   }
 
   function update(id, status) {
-    fetch('http://localhost/inventory-api/updateOrders.php', {
-      method: 'POST',
+    fetch(`http://127.0.0.1:8000/api/orders/${id}/status/`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: id, status })
+      credentials: 'include',
+      body: JSON.stringify({ status })
     })
       .then(function(res) { return res.json(); })
       .then(function(data) {

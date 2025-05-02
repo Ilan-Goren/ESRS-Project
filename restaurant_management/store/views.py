@@ -1,3 +1,7 @@
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Q
 """
 Views for the store application.
 
@@ -20,11 +24,15 @@ from django.db import transaction as db_transaction
 
 from .models import UserProfile, Inventory, Order, OrderItem, Transaction, Supplier
 from .forms import (
-    UserRegistrationForm, CustomAuthenticationForm, InventoryForm, 
+    UserRegistrationForm, CustomAuthenticationForm, InventoryForm,
     TransactionForm, OrderForm, OrderItemForm, OrderUpdateForm,
     DateRangeForm, UserProfileForm
 )
 from .decorators import role_required
+
+# Django REST Framework imports for API views
+from rest_framework import generics, permissions
+from .serializers import InventorySerializer
 
 
 def landing_page(request):
@@ -619,3 +627,66 @@ def manage_suppliers(request):
     suppliers = Supplier.objects.all()
     
     return render(request, 'store/manage_suppliers.html', {'suppliers': suppliers})
+class InventoryListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Inventory.objects.all()
+    serializer_class = InventorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class InventoryRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Inventory.objects.all()
+    serializer_class = InventorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+# API Login View
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+from django.http import JsonResponse
+import json
+
+@csrf_exempt
+def api_login_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+            role = data.get('role')  # optional in case you want to validate role match
+
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                try:
+                    user_profile = user.userprofile
+                    user_role = user_profile.role
+                except Exception:
+                    user_role = 'admin' if user.is_superuser else 'unknown'
+                return JsonResponse({'message': 'Login successful', 'role': user_role})
+            else:
+                return JsonResponse({'message': 'Invalid credentials'}, status=401)
+        except Exception as e:
+            return JsonResponse({'message': 'Error during login', 'error': str(e)}, status=400)
+    return JsonResponse({'message': 'Invalid request'}, status=405)
+
+
+# API Dashboard View
+@csrf_exempt
+def dashboard_api_view(request):
+    if request.method == 'GET':
+        return JsonResponse({'message': 'Dashboard API reached successfully'})
+    return JsonResponse({'message': 'Invalid request method'}, status=405)
+
+
+# API User List View for /api/users/
+from rest_framework import permissions
+
+class UserListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        search_query = request.GET.get('search', '')
+        users = User.objects.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query)
+        ).values('id', 'username', 'email', 'is_staff', 'is_superuser')
+
+        return Response(list(users), status=status.HTTP_200_OK)

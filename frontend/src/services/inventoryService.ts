@@ -13,26 +13,26 @@ export interface InventoryItem {
 }
 
 export const getInventory = async (): Promise<InventoryItem[]> => {
-  const response = await api.get('/inventory.php');
+  const response = await api.get('/inventory/');
   return response.data;
 };
 
 export const getInventoryItem = async (id: number): Promise<InventoryItem> => {
-  const response = await api.get(`/inventory.php?id=${id}`);
+  const response = await api.get(`/inventory/${id}/`);
   return response.data;
 };
 
 export const createInventoryItem = async (item: Omit<InventoryItem, 'id' | 'last_updated'>): Promise<{ id: number }> => {
-  const response = await api.post('/inventory.php', item);
+  const response = await api.post('/inventory/', item);
   return response.data;
 };
 
 export const updateInventoryItem = async (id: number, item: Partial<InventoryItem>): Promise<{ success: boolean }> => {
-  const response = await api.put(`/inventory.php?id=${id}`, item);
+  const response = await api.put(`/inventory/${id}/`, item);
   return response.data;
 };
 
 export const deleteInventoryItem = async (id: number): Promise<{ success: boolean }> => {
-  const response = await api.delete(`/inventory.php?id=${id}`);
+  const response = await api.delete(`/inventory/${id}/`);
   return response.data;
 };

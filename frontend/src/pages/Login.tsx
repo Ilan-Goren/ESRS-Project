@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { login } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import TokenStorage from '../services/TokenStorage';
 
 // Import images
 import adminIcon from "../assets/admin.png";
@@ -53,6 +54,7 @@ const MergedLogin = () => {
         password: data.password,
         role: selectedRole
       });
+      console.log("Login response:", response);
       
       // Check if user role matches the selected role
       if (response.user.role !== selectedRole) {
@@ -62,8 +64,8 @@ const MergedLogin = () => {
       }
       
       // Save token and user
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      TokenStorage.setAccessToken(response.token);
+      TokenStorage.setUser(response.user);
       
       // Update auth context
       setUser(response.user);

@@ -8,9 +8,31 @@ const SettingPage = () => {
   const [exportFmt, setExportFmt] = useState('CSV');
   const [launchDate, setLaunchDate] = useState('2024-12-31');
 
-  function handleSave() {
-    alert('Saved');
-    console.log(name, lang, registration, exportFmt, launchDate);
+  async function handleSave() {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/settings/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          lang,
+          registration,
+          exportFmt,
+          launchDate
+        })
+      });
+
+      if (response.ok) {
+        alert('Settings saved');
+      } else {
+        alert('Failed to save settings');
+      }
+    } catch (error) {
+      alert('Error while saving settings');
+    }
   }
 
   function handleReset() {
