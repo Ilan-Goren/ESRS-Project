@@ -9,20 +9,35 @@ const AdminDashboard = () => {
     uptime: 0,
   });
 
-  useEffect(function() {
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    console.log("Token available:", !!token);
+    
     fetch('http://127.0.0.1:8000/api/dashboard/', {
-      credentials: 'include'
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      }
     })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
+      .then(res => {
+        console.log("API response status:", res.status);
+        if (!res.ok) {
+          throw new Error(`Status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log("Dashboard data received:", data);
         setInfo({
-          users: data.totalUsers,
-          suppliers: data.suppliers,
-          roles: data.totalRoles,
-          uptime: data.systemUptimeDays,
+          users: data.totalUsers || 0,
+          suppliers: data.suppliers || 0,
+          roles: data.totalRoles || 0,
+          uptime: data.systemUptimeDays || 0,
         });
       })
-      .catch(function() { alert('Failed to load'); });
+      .catch(error => {
+        console.error('Failed to load dashboard data:', error);
+      });
   }, []);
 
   return (

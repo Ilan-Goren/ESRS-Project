@@ -9,20 +9,33 @@ const StaffDashboard = () => {
     shipped: 0,
   });
 
-  useEffect(function() {
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    
     fetch('http://127.0.0.1:8000/api/dashboard/staff/', {
-      credentials: 'include'
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      }
     })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
         setInfo({
-          inventory: data.totalInventory,
-          delivered: data.ordersDelivered,
-          pending: data.ordersPending,
-          shipped: data.ordersShipped,
+          lowStock: data.lowStockCount || 0,
+          myTransactions: data.myTransactions || 0,
+          additions: data.totalAdditions || 0,
+          removals: data.totalRemovals || 0,
         });
       })
-      .catch(function() { alert('Load failed'); });
+      .catch(error => {
+        console.error('Failed to load dashboard data:', error);
+        // Don't show an alert, just leave the default zeros
+      });
   }, []);
 
   return (

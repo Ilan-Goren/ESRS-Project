@@ -16,7 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include  # Make sure 'path' is imported here
 from django.contrib.auth import views as auth_views
 
 from store.views import landing_page, register_user
@@ -30,35 +30,58 @@ from django.contrib.auth import authenticate, login
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.conf import settings
+import jwt
+from datetime import datetime, timedelta
+import uuid
+
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class APILoginView(View):
     def post(self, request):
         try:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            username = data.get('username')
+            username = data.get('username') or data.get('email')
             password = data.get('password')
+            role = data.get('role')
+            
             if not username or not password:
-                return JsonResponse({'message': 'Username and password required'}, status=400)
+                return JsonResponse({'message': 'Username/email and password required'}, status=400)
+            
             user = authenticate(request, username=username, password=password)
+            
             if user is not None:
                 login(request, user)
                 try:
-                    role = user.userprofile.role
+                    user_role = user.userprofile.role
                 except AttributeError:
                     if user.is_superuser:
-                        role = 'admin'
+                        user_role = 'admin'
                     else:
-                        role = 'unknown'
+                        user_role = 'unknown'
+                
+                # Generate standard JWT tokens
+                refresh = RefreshToken.for_user(user)
+                access_token = str(refresh.access_token)
+                
+                # Prepare user data
+                user_data = {
+                    'id': user.id,
+                    'name': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_superuser': user.is_superuser,
+                    'role': user_role
+                }
+                
                 return JsonResponse({
                     'message': 'Login successful',
-                    'role': role,
-                    'user': {
-                        'username': user.username,
-                        'email': user.email,
-                        'is_superuser': user.is_superuser,
-                        'role': role
-                    }
+                    'token': access_token,
+                    'access': access_token,
+                    'refresh': str(refresh),
+                    'role': user_role,
+                    'user': user_data
                 })
             else:
                 return JsonResponse({'message': 'Invalid credentials'}, status=401)

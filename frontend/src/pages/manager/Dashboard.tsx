@@ -9,20 +9,31 @@ const ManagerDashboard = () => {
     shipped: 0,
   });
 
-  useEffect(function() {
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
     fetch('http://127.0.0.1:8000/api/dashboard/manager/', {
-      credentials: 'include'
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      }
     })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
         setInfo({
-          inventory: data.totalInventory,
-          delivered: data.ordersDelivered,
-          pending: data.ordersPending,
-          shipped: data.ordersShipped,
+          inventory: data.totalInventory || 0,
+          delivered: data.ordersDelivered || 0,
+          pending: data.ordersPending || 0,
+          shipped: data.ordersShipped || 0,
         });
       })
-      .catch(function() { alert('Failed to load'); });
+      .catch(error => {
+        console.error('Failed to load dashboard data:', error);
+      });
   }, []);
 
   return (

@@ -48,7 +48,12 @@ urlpatterns = [
     path('suppliers/', views.manage_suppliers, name='manage_suppliers'),
     
     # API Endpoints
-    path('api/inventory/', InventoryListCreateAPIView.as_view(), name='inventory_api_list_create'),
-    path('api/inventory/<int:pk>/', InventoryRetrieveUpdateDestroyAPIView.as_view(), name='inventory_api_detail'),
-    path('api/dashboard/', dashboard_api_view, name='dashboard_api'),
+    path('api/inventory/', views.InventoryListCreateAPIView.as_view(), name='inventory_api_list_create'),
+    path('api/inventory/<int:pk>/', views.InventoryRetrieveUpdateDestroyAPIView.as_view(), name='inventory_api_detail'),
+    path('api/dashboard/', views.dashboard_api_view, name='dashboard_api'),
+    
+    # Add these new dashboard API endpoints
+    path('api/dashboard/manager/', views.manager_dashboard_api_view, name='manager_dashboard_api'),
+    path('api/dashboard/staff/', views.staff_dashboard_api_view, name='staff_dashboard_api'),
+    path('api/dashboard/supplier/', views.supplier_dashboard_api_view, name='supplier_dashboard_api'),
 ]
