@@ -720,183 +720,155 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from .models import UserProfile, Supplier
 
+
+# --- New Dashboard API Views ---
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_api_view(request):
     """
     Dashboard API view that uses standard DRF authentication.
-    This leverages the built-in JWT authentication from djangorestframework-simplejwt.
+    Standardized response with debug print.
     """
-    # Access is automatically granted only if the JWT token is valid
-    # The user is automatically populated by DRF's authentication system
-
-    # Get dashboard statistics
-    total_users = User.objects.count()
-    suppliers_count = Supplier.objects.count()
-    roles_count = UserProfile.objects.values('role').distinct().count()
-
-    return Response({
-        'totalUsers': total_users,
-        'suppliers': suppliers_count,
-        'totalRoles': roles_count,
-        'systemUptimeDays': 7
-    })
-
-# Manager Dashboard API
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def manager_dashboard_api_view(request):
-    """
-    API view for manager dashboard data.
-    """
+    print('[dashboard_api_view] User:', request.user)
     try:
-        # Get actual data from your database
-        total_inventory = Inventory.objects.count()
-        
-        # Order statistics - use defaults if models don't have these statuses
-        try:
-            orders_delivered = Order.objects.filter(status='delivered').count()
-        except:
-            orders_delivered = 12
-            
-        try:
-            orders_pending = Order.objects.filter(status='pending').count()
-        except:
-            orders_pending = 5
-            
-        try:
-            orders_shipped = Order.objects.filter(status='shipped').count()
-        except:
-            orders_shipped = 8
-        
-        return JsonResponse({
-            'totalInventory': total_inventory,
-            'ordersDelivered': orders_delivered,
-            'ordersPending': orders_pending,
-            'ordersShipped': orders_shipped
-        })
+        total_users = User.objects.count()
+        suppliers_count = Supplier.objects.count()
+        roles_count = UserProfile.objects.values('role').distinct().count()
+        response_data = {
+            'totalUsers': total_users,
+            'suppliers': suppliers_count,
+            'totalRoles': roles_count,
+            'systemUptimeDays': 7
+        }
+        print('[dashboard_api_view] Response:', response_data)
+        return Response(response_data)
     except Exception as e:
-        print(f"Manager Dashboard API error: {str(e)}")
-        return JsonResponse({
-            'totalInventory': 0,
-            'ordersDelivered': 0,
-            'ordersPending': 0,
-            'ordersShipped': 0,
-            'error': str(e)
-        })
+        print(f"[dashboard_api_view] Error: {str(e)}")
+        return Response({'error': str(e)}, status=500)
 
-# Staff Dashboard API
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def staff_dashboard_api_view(request):
     """
     API view for staff dashboard data.
+    Standardized response with debug print.
     """
+    print('[staff_dashboard_api_view] User:', request.user)
     try:
-        # Get low stock count
-        try:
-            low_stock_count = Inventory.objects.filter(quantity__lte=F('reorder_level')).count()
-        except:
-            low_stock_count = 7
-        
-        # Get staff transactions
-        try:
-            if hasattr(request.user, 'userprofile'):
-                user_transactions = Transaction.objects.filter(
-                    user=request.user.userprofile
-                ).count()
-            else:
-                user_transactions = 15
-        except:
-            user_transactions = 15
-            
-        # Get inventory movement data
-        try:
-            total_additions = Transaction.objects.filter(transaction_type='added').count()
-            total_removals = Transaction.objects.filter(transaction_type='removed').count()
-        except:
-            total_additions = 28
-            total_removals = 18
-        
-        return JsonResponse({
+        low_stock_count = Inventory.objects.filter(quantity__lte=F('reorder_level')).count()
+        if hasattr(request.user, 'userprofile'):
+            user_transactions = Transaction.objects.filter(
+                user=request.user.userprofile
+            ).count()
+        else:
+            user_transactions = 0
+        total_additions = Transaction.objects.filter(transaction_type='added').count()
+        total_removals = Transaction.objects.filter(transaction_type='removed').count()
+        response_data = {
             'lowStockCount': low_stock_count,
             'myTransactions': user_transactions,
             'totalAdditions': total_additions,
             'totalRemovals': total_removals
-        })
+        }
+        print('[staff_dashboard_api_view] Response:', response_data)
+        return Response(response_data)
     except Exception as e:
-        print(f"Staff Dashboard API error: {str(e)}")
-        return JsonResponse({
+        print(f"[staff_dashboard_api_view] Error: {str(e)}")
+        return Response({
             'lowStockCount': 0,
             'myTransactions': 0,
             'totalAdditions': 0,
             'totalRemovals': 0,
             'error': str(e)
-        })
+        }, status=500)
 
-# Supplier Dashboard API
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def manager_dashboard_api_view(request):
+    """
+    API view for manager dashboard data.
+    Standardized response with debug print.
+    """
+    print('[manager_dashboard_api_view] User:', request.user)
+    try:
+        total_inventory = Inventory.objects.count()
+        orders_delivered = Order.objects.filter(status='delivered').count()
+        orders_pending = Order.objects.filter(status='pending').count()
+        orders_shipped = Order.objects.filter(status='shipped').count()
+        response_data = {
+            'totalInventory': total_inventory,
+            'ordersDelivered': orders_delivered,
+            'ordersPending': orders_pending,
+            'ordersShipped': orders_shipped
+        }
+        print('[manager_dashboard_api_view] Response:', response_data)
+        return Response(response_data)
+    except Exception as e:
+        print(f"[manager_dashboard_api_view] Error: {str(e)}")
+        return Response({
+            'totalInventory': 0,
+            'ordersDelivered': 0,
+            'ordersPending': 0,
+            'ordersShipped': 0,
+            'error': str(e)
+        }, status=500)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def supplier_dashboard_api_view(request):
     """
     API view for supplier dashboard data.
+    Standardized response with debug print.
     """
+    print('[supplier_dashboard_api_view] User:', request.user)
     try:
-        # Try to find the supplier associated with the user
         supplier_id = None
         if hasattr(request.user, 'userprofile'):
             profile = request.user.userprofile
             if profile.role == 'supplier':
-                # Try to get supplier_id from related models
                 try:
-                    # This depends on your model structure
                     supplier_profile = request.user.supplierprofile
                     supplier_id = supplier_profile.supplier_id
-                except:
-                    # Fallback to looking up by supplier name matching user email
+                    print('[supplier_dashboard_api_view] supplier_id from supplierprofile:', supplier_id)
+                except Exception as ex:
+                    print('[supplier_dashboard_api_view] No supplierprofile:', ex)
                     try:
                         supplier = Supplier.objects.filter(
                             contact_email__icontains=request.user.email
                         ).first()
                         if supplier:
                             supplier_id = supplier.id
-                    except:
-                        pass
-        
-        # Orders data - either real or placeholder
+                            print('[supplier_dashboard_api_view] supplier_id from email:', supplier_id)
+                    except Exception as ex2:
+                        print('[supplier_dashboard_api_view] Supplier lookup by email failed:', ex2)
         if supplier_id:
-            try:
-                total_orders = Order.objects.filter(supplier_id=supplier_id).count()
-                pending_orders = Order.objects.filter(supplier_id=supplier_id, status='pending').count()
-                delivered_orders = Order.objects.filter(supplier_id=supplier_id, status='delivered').count()
-                in_transit = Order.objects.filter(supplier_id=supplier_id, status='shipped').count()
-            except:
-                total_orders = 42
-                pending_orders = 7
-                delivered_orders = 31
-                in_transit = 4
+            total_orders = Order.objects.filter(supplier_id=supplier_id).count()
+            pending_orders = Order.objects.filter(supplier_id=supplier_id, status='pending').count()
+            delivered_orders = Order.objects.filter(supplier_id=supplier_id, status='delivered').count()
+            in_transit = Order.objects.filter(supplier_id=supplier_id, status='shipped').count()
         else:
-            # Demo data
-            total_orders = 42
-            pending_orders = 7
-            delivered_orders = 31
-            in_transit = 4
-            
-        return JsonResponse({
+            total_orders = 0
+            pending_orders = 0
+            delivered_orders = 0
+            in_transit = 0
+        response_data = {
             'totalOrders': total_orders,
             'pendingOrders': pending_orders,
             'deliveredOrders': delivered_orders,
             'inTransitOrders': in_transit
-        })
+        }
+        print('[supplier_dashboard_api_view] Response:', response_data)
+        return Response(response_data)
     except Exception as e:
-        print(f"Supplier Dashboard API error: {str(e)}")
-        return JsonResponse({
+        print(f"[supplier_dashboard_api_view] Error: {str(e)}")
+        return Response({
             'totalOrders': 0,
             'pendingOrders': 0,
             'deliveredOrders': 0,
             'inTransitOrders': 0,
             'error': str(e)
-        })
+        }, status=500)
 
 # API User List View for /api/users/
 class UserListView(APIView):
@@ -1140,3 +1112,401 @@ def user_detail_api_view(request, user_id):
         # Delete user
         user.delete()
         return JsonResponse({'message': 'User deleted successfully'})
+    
+    from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# Add these new views at the end of your views.py file
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supplier_dashboard_api_view(request):
+    """API view for supplier dashboard data."""
+    try:
+        # Get the current user
+        user = request.user
+        
+        # You can add logic here to get real data based on the supplier
+        # For now, we'll return sample data
+        return Response({
+            'totalOrders': 42,
+            'pendingOrders': 7,
+            'deliveredOrders': 31,
+            'inTransitOrders': 4
+        })
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+
+@api_view(['GET', 'POST'])  # Make sure POST is included here
+def orders_api_view(request):
+    """API view for all orders."""
+    if request.method == 'GET':
+        # Existing GET logic
+        return Response([
+            {'id': 1001, 'item_name': 'Fresh Tomatoes', 'quantity_ordered': 20, 'status': 'pending', 'order_date': '2025-05-10'},
+            # Other items...
+        ])
+    elif request.method == 'POST':
+        # Add POST logic to handle order creation
+        try:
+            data = request.data
+            inventory_id = data.get('inventory_id')
+            quantity_ordered = data.get('quantity_ordered')
+            supplier_id = data.get('supplier_id')
+            
+            # Validate required fields
+            if not all([inventory_id, quantity_ordered, supplier_id]):
+                return Response({
+                    'error': 'Missing required fields'
+                }, status=400)
+                
+            # Here you would normally create the order in your database
+            # For now, we'll just return a success response
+            print(f"Order created: inventory={inventory_id}, quantity={quantity_ordered}, supplier={supplier_id}")
+            
+            return Response({
+                'message': 'Order created successfully',
+                'order_id': 12345  # You would return the actual order ID here
+            }, status=201)
+            
+        except Exception as e:
+            print(f"Error creating order: {str(e)}")
+            return Response({
+                'error': str(e)
+            }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supplier_orders_api_view(request):
+    """API view for supplier-specific orders."""
+    try:
+        # Get the current user
+        user = request.user
+        
+        # You can add logic here to filter orders for this specific supplier
+        # For now, we'll return sample data
+        return Response([
+            {'id': 1001, 'item_name': 'Fresh Tomatoes', 'quantity_ordered': 20, 'status': 'pending', 'order_date': '2025-05-10'},
+            {'id': 1002, 'item_name': 'Lettuce', 'quantity_ordered': 15, 'status': 'shipped', 'order_date': '2025-05-12'},
+            {'id': 1003, 'item_name': 'Carrots', 'quantity_ordered': 30, 'status': 'delivered', 'order_date': '2025-05-08'}
+        ])
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    """API view to update order status."""
+    try:
+        # Get the status from request data
+        status = request.data.get('status')
+        
+        if not status:
+            return Response({
+                'error': 'Status is required'
+            }, status=400)
+        
+        # Here you would update the real order in your database
+        # For now, we'll just return a success message
+        return Response({
+            'message': f'Order {order_id} status updated to {status}'
+        })
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+    
+# Add these to your store/views.py file
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def manager_dashboard_api_view(request):
+    """API view for manager dashboard data."""
+    try:
+        # Sample data for manager dashboard
+        dashboard_data = {
+            'totalInventory': 127,
+            'ordersDelivered': 45,
+            'ordersPending': 12,
+            'ordersShipped': 18
+        }
+        return Response(dashboard_data)
+    except Exception as e:
+        print(f"Error in manager dashboard: {str(e)}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def suppliers_api_view(request):
+    """API view for suppliers listing and creation."""
+    if request.method == 'GET':
+        # Sample supplier data for listing
+        suppliers_data = [
+            {
+                'id': 1, 
+                'name': 'Fresh Veggies Ltd.', 
+                'email': 'contact@freshveggies.com', 
+                'phone': '555-123-4567', 
+                'contact_info': 'John Smith'
+            },
+            {
+                'id': 2, 
+                'name': 'Dairy Co.', 
+                'email': 'info@dairyco.com', 
+                'phone': '555-987-6543', 
+                'contact_info': 'Jane Doe'
+            },
+            {
+                'id': 3, 
+                'name': 'Meat Distributors Inc.', 
+                'email': 'sales@meatdist.com', 
+                'phone': '555-456-7890', 
+                'contact_info': 'Mike Johnson'
+            }
+        ]
+        return Response(suppliers_data)
+    
+    elif request.method == 'POST':
+        # Handle creating a new supplier
+        # In a real app, you would save this to the database
+        return Response({
+            'id': 4,
+            'name': request.data.get('name', ''),
+            'email': request.data.get('email', ''),
+            'phone': request.data.get('phone', ''),
+            'contact_info': request.data.get('contact', '')
+        })
+    
+    # The other methods will be handled by the detail view below
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def supplier_detail_api_view(request, supplier_id):
+    """API view for supplier detail, update and delete."""
+    if request.method == 'GET':
+        # Get supplier detail
+        supplier_data = {
+            'id': supplier_id,
+            'name': 'Sample Supplier',
+            'email': 'sample@example.com',
+            'phone': '555-555-5555',
+            'contact_info': 'Contact Person'
+        }
+        return Response(supplier_data)
+    
+    elif request.method == 'PUT':
+        # Update supplier
+        return Response({
+            'id': supplier_id,
+            'name': request.data.get('name', ''),
+            'email': request.data.get('email', ''),
+            'phone': request.data.get('phone', ''),
+            'contact_info': request.data.get('contact', '')
+        })
+    
+    elif request.method == 'DELETE':
+        # Delete supplier
+        return Response({'message': f'Supplier {supplier_id} deleted successfully'})
+    
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.http import JsonResponse
+from django.db.models import F, Count, Sum
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def staff_dashboard_api_view(request):
+    """
+    API view for staff dashboard data.
+    """
+    try:
+        # Get low stock count
+        try:
+            low_stock_count = Inventory.objects.filter(quantity__lte=F('reorder_level')).count()
+        except:
+            low_stock_count = 7
+        
+        # Get staff transactions
+        try:
+            if hasattr(request.user, 'userprofile'):
+                user_transactions = Transaction.objects.filter(
+                    user=request.user.userprofile
+                ).count()
+            else:
+                user_transactions = 15
+        except:
+            user_transactions = 15
+            
+        # Get inventory movement data
+        try:
+            total_additions = Transaction.objects.filter(transaction_type='added').count()
+            total_removals = Transaction.objects.filter(transaction_type='removed').count()
+        except:
+            total_additions = 28
+            total_removals = 18
+        
+        return Response({
+            'lowStockCount': low_stock_count,
+            'myTransactions': user_transactions,
+            'totalAdditions': total_additions,
+            'totalRemovals': total_removals
+        })
+    except Exception as e:
+        print(f"Staff Dashboard API error: {str(e)}")
+        return Response({
+            'lowStockCount': 0,
+            'myTransactions': 0,
+            'totalAdditions': 0,
+            'totalRemovals': 0,
+            'error': str(e)
+        })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def manager_dashboard_api_view(request):
+    """
+    API view for manager dashboard data.
+    """
+    try:
+        # Get actual data from your database
+        total_inventory = Inventory.objects.count()
+        
+        # Order statistics - use defaults if models don't have these statuses
+        try:
+            orders_delivered = Order.objects.filter(status='delivered').count()
+        except:
+            orders_delivered = 12
+            
+        try:
+            orders_pending = Order.objects.filter(status='pending').count()
+        except:
+            orders_pending = 5
+            
+        try:
+            orders_shipped = Order.objects.filter(status='shipped').count()
+        except:
+            orders_shipped = 8
+        
+        return Response({
+            'totalInventory': total_inventory,
+            'ordersDelivered': orders_delivered,
+            'ordersPending': orders_pending,
+            'ordersShipped': orders_shipped
+        })
+    except Exception as e:
+        print(f"Manager Dashboard API error: {str(e)}")
+        return Response({
+            'totalInventory': 0,
+            'ordersDelivered': 0,
+            'ordersPending': 0,
+            'ordersShipped': 0,
+            'error': str(e)
+        })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supplier_dashboard_api_view(request):
+    """
+    API view for supplier dashboard data.
+    """
+    try:
+        # Try to find the supplier associated with the user
+        supplier_id = None
+        if hasattr(request.user, 'userprofile'):
+            profile = request.user.userprofile
+            if profile.role == 'supplier':
+                # Try to get supplier_id from related models
+                try:
+                    # This depends on your model structure
+                    supplier_profile = request.user.supplierprofile
+                    supplier_id = supplier_profile.supplier_id
+                except:
+                    # Fallback to looking up by supplier name matching user email
+                    try:
+                        supplier = Supplier.objects.filter(
+                            contact_email__icontains=request.user.email
+                        ).first()
+                        if supplier:
+                            supplier_id = supplier.id
+                    except:
+                        pass
+        
+        # Orders data - either real or placeholder
+        if supplier_id:
+            try:
+                total_orders = Order.objects.filter(supplier_id=supplier_id).count()
+                pending_orders = Order.objects.filter(supplier_id=supplier_id, status='pending').count()
+                delivered_orders = Order.objects.filter(supplier_id=supplier_id, status='delivered').count()
+                in_transit = Order.objects.filter(supplier_id=supplier_id, status='shipped').count()
+            except:
+                total_orders = 42
+                pending_orders = 7
+                delivered_orders = 31
+                in_transit = 4
+        else:
+            # Demo data
+            total_orders = 42
+            pending_orders = 7
+            delivered_orders = 31
+            in_transit = 4
+            
+        return Response({
+            'totalOrders': total_orders,
+            'pendingOrders': pending_orders,
+            'deliveredOrders': delivered_orders,
+            'inTransitOrders': in_transit
+        })
+    except Exception as e:
+        print(f"Supplier Dashboard API error: {str(e)}")
+        return Response({
+            'totalOrders': 0,
+            'pendingOrders': 0,
+            'deliveredOrders': 0,
+            'inTransitOrders': 0,
+            'error': str(e)
+        })
+    
+@api_view(['GET'])
+def staff_dashboard_api_view(request):
+    """
+    API view for staff dashboard data.
+    """
+    print("Staff dashboard API view called!")
+    try:
+        # Return mock data for now
+        return Response({
+            'lowStockCount': 7,
+            'myTransactions': 15,
+            'totalAdditions': 28,
+            'totalRemovals': 18
+        })
+    except Exception as e:
+        print(f"Staff Dashboard API error: {str(e)}")
+        return Response({
+            'lowStockCount': 0,
+            'myTransactions': 0,
+            'totalAdditions': 0,
+            'totalRemovals': 0,
+            'error': str(e)
+        })
+
+@api_view(['GET'])
+def test_dashboard_view(request):
+    """
+    Simple test view to verify API connectivity.
+    """
+    print("Test dashboard view called!")
+    return Response({
+        'message': 'API endpoint is working!',
+        'test': True
+    })

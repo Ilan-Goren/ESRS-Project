@@ -11,6 +11,21 @@ from store.views import (
     InventoryListCreateAPIView, UserListView, api_register_view,
     user_detail_api_view
 )
+
+from store.views import (
+    supplier_dashboard_api_view,
+    orders_api_view,
+    supplier_orders_api_view,
+    update_order_status, 
+
+    manager_dashboard_api_view,
+    suppliers_api_view,
+    supplier_detail_api_view,
+
+    staff_dashboard_api_view,
+    test_dashboard_view
+)
+
 from store.forms import CustomAuthenticationForm
 
 from django.views.decorators.csrf import csrf_exempt
@@ -140,4 +155,17 @@ urlpatterns = [
     path('api/inventory/', InventoryListCreateAPIView.as_view()),
     path('api/users/', UserListView.as_view()),
     path('api/users/<int:user_id>/', user_detail_api_view, name='user_detail_api'),
+
+    path('api/dashboard/supplier/', supplier_dashboard_api_view, name='supplier_dashboard_api'),
+    path('api/orders/', orders_api_view, name='orders_api'),
+    path('api/orders/supplier/', supplier_orders_api_view, name='supplier_orders_api'),
+    path('api/orders/<int:order_id>/status/', update_order_status, name='update_order_status'),
+
+    path('api/dashboard/manager/', manager_dashboard_api_view, name='manager_dashboard_api'),
+    path('api/suppliers/', suppliers_api_view, name='suppliers_api'),
+    path('api/suppliers/<int:supplier_id>/', supplier_detail_api_view, name='supplier_detail_api'),
+
+    path('api/dashboard/staff/', staff_dashboard_api_view, name='staff_dashboard_api'),
+    path('api/test-dashboard/', test_dashboard_view, name='test_dashboard'),
+
 ]
