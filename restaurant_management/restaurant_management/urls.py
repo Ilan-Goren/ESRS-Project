@@ -1,34 +1,22 @@
 """
 URL configuration for restaurant_management project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
 from django.contrib import admin
-from django.urls import path, include  # Make sure 'path' is imported here
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 
-from store.views import landing_page, register_user
-from store.views import dashboard_api_view
-from store.views import InventoryListCreateAPIView
-from store.views import UserListView
+from store.views import (
+    landing_page, register_user, dashboard_api_view,
+    InventoryListCreateAPIView, UserListView, api_register_view,
+    user_detail_api_view
+)
 from store.forms import CustomAuthenticationForm
 
-from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 import json
 from django.conf import settings
 import jwt
@@ -44,7 +32,6 @@ class APILoginView(View):
             data = json.loads(body_unicode)
             username = data.get('username') or data.get('email')
             password = data.get('password')
-            role = data.get('role')
             
             if not username or not password:
                 return JsonResponse({'message': 'Username/email and password required'}, status=400)
@@ -108,8 +95,12 @@ urlpatterns = [
     # App URLs
     path('store/', include('store.urls')),
     path('supplier/', include('supplier.urls')),
+    
+    # API Endpoints
     path('api/auth/login/', csrf_exempt(APILoginView.as_view()), name='api_login'),
+    path('api/auth/register/', api_register_view, name='api_register'),  # New registration endpoint
     path('api/dashboard/', dashboard_api_view),
     path('api/inventory/', InventoryListCreateAPIView.as_view()),
     path('api/users/', UserListView.as_view()),
+    path('api/users/<int:user_id>/', user_detail_api_view, name='user_detail_api'),
 ]

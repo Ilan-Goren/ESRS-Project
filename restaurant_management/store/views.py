@@ -662,7 +662,7 @@ def api_login_view(request):
             data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
-            role = data.get('role')  # optional in case you want to validate role match
+            role = data.get('role') 
 
             user = authenticate(request, username=email, password=password)
             if user is not None:
@@ -714,52 +714,33 @@ def api_login_view(request):
 
 # API Dashboard View
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.contrib.auth.models import User
 from .models import UserProfile, Supplier
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-@csrf_exempt
 def dashboard_api_view(request):
     """
-    Dashboard API view that returns real statistics without strict authentication.
+    Dashboard API view that uses standard DRF authentication.
+    This leverages the built-in JWT authentication from djangorestframework-simplejwt.
     """
-    try:
-        # Count total users
-        total_users = User.objects.count()
-        
-        # Count suppliers - with error handling
-        try:
-            suppliers_count = Supplier.objects.count()
-        except Exception as e:
-            print(f"Error counting suppliers: {str(e)}")
-            suppliers_count = 0
-        
-        # Count roles - with error handling
-        try:
-            roles_count = UserProfile.objects.values('role').distinct().count()
-            if roles_count == 0:
-                roles_count = 4  # Fallback if no roles found
-        except Exception as e:
-            print(f"Error counting roles: {str(e)}")
-            roles_count = 4
-        
-        return JsonResponse({
-            'totalUsers': total_users,
-            'suppliers': suppliers_count,
-            'totalRoles': roles_count,
-            'systemUptimeDays': 7  # Fixed value for uptime
-        })
-    except Exception as e:
-        print(f"Dashboard API error: {str(e)}")
-        return JsonResponse({
-            'totalUsers': 0,
-            'suppliers': 0,
-            'totalRoles': 0,
-            'systemUptimeDays': 0,
-            'error': str(e)
-        })
+    # Access is automatically granted only if the JWT token is valid
+    # The user is automatically populated by DRF's authentication system
+
+    # Get dashboard statistics
+    total_users = User.objects.count()
+    suppliers_count = Supplier.objects.count()
+    roles_count = UserProfile.objects.values('role').distinct().count()
+
+    return Response({
+        'totalUsers': total_users,
+        'suppliers': suppliers_count,
+        'totalRoles': roles_count,
+        'systemUptimeDays': 7
+    })
 
 # Manager Dashboard API
 @api_view(['GET'])
@@ -919,7 +900,7 @@ def supplier_dashboard_api_view(request):
 
 # API User List View for /api/users/
 class UserListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]  # Change to IsAuthenticated only for now
+    permission_classes = [permissions.IsAuthenticated] 
 
     def get(self, request):
         search_query = request.GET.get('search', '')
@@ -932,7 +913,7 @@ class UserListView(APIView):
         user_list = []
         for user in users:
             try:
-                profile = user.userprofile
+                profile = user.profile
                 role = getattr(profile, 'role', 'admin' if user.is_superuser else 'staff')
             except:
                 role = 'admin' if user.is_superuser else 'staff'
@@ -946,3 +927,216 @@ class UserListView(APIView):
             user_list.append(user_data)
             
         return Response(user_list, status=status.HTTP_200_OK)
+
+from django.contrib.auth.models import User
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def api_register_view(request):
+    """API view for user registration."""
+    try:
+        # Get data from request
+        data = request.data
+        username = data.get('username') or data.get('email')
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name', username)
+        
+        # Explicitly get role and validate it
+        role = (data.get('role') or '').lower()
+        print(f"Registration received with role: {role}, data keys: {data.keys()}")
+        
+        # Validate the role
+        valid_roles = ['admin', 'manager', 'staff', 'supplier']
+        if not role or role not in valid_roles:
+            print(f"Invalid role provided: {role}, defaulting to 'staff'")
+            role = 'staff'
+        else:
+            print(f"Using specified role: {role}")
+        
+        # Validation checks
+        if not username or not email or not password:
+            return JsonResponse({
+                'message': 'Username, email and password are required'
+            }, status=400)
+        
+        # Check for existing users and handle that first
+        user = None
+        
+        # Check for existing user by username
+        try:
+            user = User.objects.get(username=username)
+            return JsonResponse({
+                'message': 'Username already exists'
+            }, status=400)
+        except User.DoesNotExist:
+            pass
+            
+        # Check for existing user by email
+        try:
+            user = User.objects.get(email=email)
+            return JsonResponse({
+                'message': 'Email already exists'
+            }, status=400)
+        except User.DoesNotExist:
+            pass
+        
+        # If we got here, user doesn't exist, so create it
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                # Create user
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password
+                )
+                
+                # Set name
+                if name and name != username:
+                    name_parts = name.split(' ', 1)
+                    user.first_name = name_parts[0]
+                    if len(name_parts) > 1:
+                        user.last_name = name_parts[1]
+                    user.save()
+                
+                # Create UserProfile with validated role
+                from store.models import UserProfile
+                
+                # First check if a profile already exists
+                try:
+                    profile = UserProfile.objects.get(user=user)
+                    profile.role = role
+                    profile.save()
+                    print(f"Updated existing profile for user {user.id} with role: {role}")
+                except UserProfile.DoesNotExist:
+                    # Create new profile only if one doesn't exist
+                    profile = UserProfile.objects.create(
+                        user=user,
+                        role=role
+                    )
+                    print(f"Created new profile for user {user.id} with role: {role}")
+            
+            # If we get here, everything was successful
+            return JsonResponse({
+                'message': 'User registered successfully',
+                'user': {
+                    'id': user.id,
+                    'name': name,
+                    'email': email,
+                    'role': role
+                }
+            }, status=201)
+        except Exception as e:
+            # If something went wrong during user creation
+            print(f"Error during user creation: {str(e)}")
+            
+            # Clean up if user was created but profile failed
+            if user and user.id:
+                try:
+                    user.delete()
+                    print(f"Cleaned up partially created user {user.id}")
+                except:
+                    pass
+                
+            raise
+        
+    except Exception as e:
+        # Log the full error with traceback
+        import traceback
+        print(f"Registration error: {str(e)}")
+        print(traceback.format_exc())
+        
+        return JsonResponse({
+            'message': 'Error during registration',
+            'error': str(e)
+        }, status=400)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def user_detail_api_view(request, user_id):
+    """API view for retrieving, updating or deleting a user."""
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'message': 'User not found'}, status=404)
+        
+    if request.method == 'GET':
+        # Return user details
+        try:
+            profile = user.userprofile
+            role = profile.role
+        except:
+            role = 'admin' if user.is_superuser else 'staff'
+            
+        user_data = {
+            'id': user.id,
+            'name': user.get_full_name() or user.username,
+            'email': user.email,
+            'role': role
+        }
+        return JsonResponse(user_data)
+        
+    elif request.method == 'PUT':
+        # Update user details
+        data = request.data
+        name = data.get('name')
+        role = (data.get('role') or '').lower()
+        
+        print(f"Updating user {user_id} with data: {data}")
+        
+        # Update name if provided
+        if name:
+            name_parts = name.split(' ', 1)
+            user.first_name = name_parts[0]
+            user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            user.save()
+            
+        # Update role if provided - with extra validation and logging
+        if role:
+            print(f"Attempting to update role to: {role}")
+            
+            valid_roles = ['admin', 'manager', 'staff', 'supplier']
+            if role not in valid_roles:
+                return JsonResponse({'message': f'Invalid role: {role}'}, status=400)
+            
+            # Use get_or_create to avoid IntegrityError
+            from store.models import UserProfile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            
+            # Store the old role for logging
+            old_role = profile.role
+            
+            # Update the role
+            profile.role = role
+            profile.save()
+            
+            print(f"Role updated: {old_role} -> {role} (created={created})")
+        
+        # Return the updated user data
+        try:
+            profile = user.userprofile
+            current_role = profile.role
+        except:
+            current_role = 'admin' if user.is_superuser else 'staff'
+            
+        return JsonResponse({
+            'message': 'User updated successfully',
+            'user': {
+                'id': user.id,
+                'name': user.get_full_name() or user.username,
+                'email': user.email,
+                'role': current_role
+            }
+        })
+        
+    elif request.method == 'DELETE':
+        # Delete user
+        user.delete()
+        return JsonResponse({'message': 'User deleted successfully'})

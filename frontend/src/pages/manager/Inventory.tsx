@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const InventoryPage = () => {
   const [list, setList] = useState([]);
@@ -9,75 +11,107 @@ const InventoryPage = () => {
   const [addForm, setAddForm] = useState({ product: '', quantity: 0, supplier: '' });
   const [editForm, setEditForm] = useState({ id: null, productName: '', quantity: 0, supplier: '' });
   const [showEdit, setShowEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { isAuthenticated } = useAuth();
 
-  useEffect(function () {
-    fetchData();
-    fetchSuppliers();
-  }, []);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+      fetchSuppliers();
+    }
+  }, [isAuthenticated]);
 
-  function fetchData() {
-    fetch(`http://127.0.0.1:8000/api/inventory/?search=${encodeURIComponent(search)}`, {
-      credentials: 'include'
-    })
-      .then(res => res.json())
-      .then(data => {
-        console.log('[Inventory List]', data);
-        setList(data);
-      });
+  async function fetchData() {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching inventory with auth token:', !!localStorage.getItem('access_token'));
+      
+      const response = await api.get(`/inventory/?search=${encodeURIComponent(search)}`);
+      console.log('[Inventory List]', response.data);
+      setList(response.data);
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+      setError('Failed to load inventory data. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function fetchSuppliers() {
-    fetch('http://localhost/inventory-api/suppliers.php')
-      .then(res => res.json())
-      .then(data => setSuppliers(data));
+  async function fetchSuppliers() {
+    try {
+      // If using your API, replace with your actual suppliers endpoint
+      const response = await api.get('/suppliers/');
+      setSuppliers(response.data);
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+      // Use placeholder suppliers if API fails
+      setSuppliers([
+        { id: 1, name: 'Fresh Veggies Ltd.' },
+        { id: 2, name: 'Dairy Co.' },
+        { id: 3, name: 'Meat Distributors Inc.' }
+      ]);
+    }
   }
 
-  function addItem() {
-    fetch('http://127.0.0.1:8000/api/inventory/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        name: addForm.product,
+  async function addItem() {
+    try {
+      await api.post('/inventory/', {
+        name: addForm.product, // Make sure these field names match your API expectations
         quantity: addForm.quantity,
-        supplier: addForm.supplier,
-      })
-    }).then(() => {
+        supplier: addForm.supplier
+      });
+      
       setAddForm({ product: '', quantity: 0, supplier: '' });
       setShowAdd(false);
       fetchData();
-    });
+    } catch (err) {
+      console.error('Error adding item:', err);
+      alert('Failed to add item');
+    }
   }
 
-  function updateItem() {
-    fetch(`http://127.0.0.1:8000/api/inventory/${editForm.id}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
+  async function updateItem() {
+    try {
+      await api.put(`/inventory/${editForm.id}/`, {
         id: editForm.id,
         item_name: editForm.productName,
         quantity: editForm.quantity,
         supplier: editForm.supplier
-      })
-    }).then(() => {
+      });
+      
       setShowEdit(false);
       fetchData();
-    });
+    } catch (err) {
+      console.error('Error updating item:', err);
+      alert('Failed to update item');
+    }
   }
 
-  function delItem(id) {
+  async function delItem(id) {
     if (!window.confirm('Delete this item?')) return;
-    fetch(`http://127.0.0.1:8000/api/inventory/${id}/`, {
-      method: 'DELETE',
-      credentials: 'include'
-    }).then(() => fetchData());
+    
+    try {
+      await api.delete(`/inventory/${id}/`);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      alert('Failed to delete item');
+    }
   }
 
   return (
     <Layout>
       <div className="p-5">
         <h2 className="text-lg font-bold mb-4 text-gray-800">Inventory</h2>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-2 mb-4">
           <input
@@ -97,45 +131,51 @@ const InventoryPage = () => {
           className="mb-4 bg-green-500 text-white px-3 py-1 rounded"
         >+ Add</button>
 
-        <table className="w-full border text-sm">
-          <thead>
-            <tr>
-              <th className="border p-1">#</th>
-              <th className="border p-1">Product</th>
-              <th className="border p-1">Qty</th>
-              <th className="border p-1">Supplier</th>
-              <th className="border p-1">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((item, idx) => (
-              <tr key={item.id}>
-                <td className="border p-1 text-center">{idx + 1}</td>
-                <td className="border p-1">{item.item_name}</td>
-                <td className="border p-1 text-center">{item.quantity}</td>
-                <td className="border p-1">{item.supplier}</td>
-                <td className="border p-1 text-center">
-                  <button
-                    onClick={() => {
-                      setEditForm({
-                        id: item.id,
-                        productName: item.item_name,
-                        quantity: item.quantity,
-                        supplier: item.supplier
-                      });
-                      setShowEdit(true);
-                    }}
-                    className="text-blue-600 text-xs mr-2"
-                  >Edit</button>
-                  <button
-                    onClick={() => delItem(item.id)}
-                    className="text-red-600 text-xs"
-                  >Delete</button>
-                </td>
+        {loading ? (
+          <p>Loading inventory data...</p>
+        ) : list.length === 0 ? (
+          <p>No inventory items found.</p>
+        ) : (
+          <table className="w-full border text-sm">
+            <thead>
+              <tr>
+                <th className="border p-1">#</th>
+                <th className="border p-1">Product</th>
+                <th className="border p-1">Qty</th>
+                <th className="border p-1">Supplier</th>
+                <th className="border p-1">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.map((item, idx) => (
+                <tr key={item.id}>
+                  <td className="border p-1 text-center">{idx + 1}</td>
+                  <td className="border p-1">{item.item_name}</td>
+                  <td className="border p-1 text-center">{item.quantity}</td>
+                  <td className="border p-1">{item.supplier}</td>
+                  <td className="border p-1 text-center">
+                    <button
+                      onClick={() => {
+                        setEditForm({
+                          id: item.id,
+                          productName: item.item_name,
+                          quantity: item.quantity,
+                          supplier: item.supplier
+                        });
+                        setShowEdit(true);
+                      }}
+                      className="text-blue-600 text-xs mr-2"
+                    >Edit</button>
+                    <button
+                      onClick={() => delItem(item.id)}
+                      className="text-red-600 text-xs"
+                    >Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         {showAdd && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">

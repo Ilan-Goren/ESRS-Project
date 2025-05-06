@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { login } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
-import TokenStorage from '../services/TokenStorage';
 
 // Import images
 import adminIcon from "../assets/admin.png";
@@ -18,14 +17,12 @@ interface LoginFormData {
 }
 
 const MergedLogin = () => {
-  const { register, handleSubmit, formState: { errors }, setValue, reset } = useForm<LoginFormData>();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<LoginFormData>();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const { setUser } = useAuth();
   const navigate = useNavigate();
-
-  // No predefined email addresses, allowing multiple users per role
 
   const handleIconClick = (role: string) => {
     setSelectedRole(role);
@@ -43,32 +40,36 @@ const MergedLogin = () => {
       return;
     }
 
-    // No email validation against predefined emails - allow any email for the selected role
-
     setLoading(true);
     setError(null);
     
     try {
-      const response = await login({
+      // Call the login function with credentials
+      const user = await login({
         email: data.email,
-        password: data.password,
-        role: selectedRole
+        password: data.password
       });
-      console.log("Login response:", response);
       
-      // Check if user role matches the selected role
-      if (response.user.role !== selectedRole) {
-        setError('Invalid login credentials. Please try again.');
+      console.log("Login response:", user);
+      
+      // Get the role from localStorage after login
+      const userRole = localStorage.getItem('role');
+      
+      if (!userRole) {
+        setError('Login successful but role information is missing');
         setLoading(false);
         return;
       }
       
-      // Save token and user
-      TokenStorage.setAccessToken(response.token);
-      TokenStorage.setUser(response.user);
+      // Check if user role matches the selected role
+      if (userRole !== selectedRole) {
+        setError(`Selected role (${selectedRole}) doesn't match your account role (${userRole})`);
+        setLoading(false);
+        return;
+      }
       
       // Update auth context
-      setUser(response.user);
+      setUser(user);
       
       // Redirect based on role
       const redirectMap: Record<string, string> = {
@@ -78,7 +79,7 @@ const MergedLogin = () => {
         supplier: '/supplier'
       };
       
-      navigate(redirectMap[response.user.role] || '/');
+      navigate(redirectMap[userRole] || '/');
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error(err);
