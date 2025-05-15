@@ -132,3 +132,11 @@ The frontend is designed to easily transition from the temporary PHP API to a **
 - **Update service functions** to align with Django's API endpoints and response formats.  
 
 ---
+
+
+Credentials:
+
+admin:	admin@example.com, Password1
+manager:	manager@example.com, Password2
+staff:	staff@example.com, Password3
+supplier:	supplier@example.com, Password4
