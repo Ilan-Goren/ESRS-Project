@@ -136,7 +136,7 @@ The frontend is designed to easily transition from the temporary PHP API to a **
 
 Credentials:
 
-admin:	admin@example.com, Password1
-manager:	manager@example.com, Password2
-staff:	staff@example.com, Password3
-supplier:	supplier@example.com, Password4
+- admin:	admin@example.com, Password1
+- manager:	manager@example.com, Password2
+- staff:	staff@example.com, Password3
+- supplier:	supplier@example.com, Password4
