@@ -1140,3 +1140,90 @@ def user_detail_api_view(request, user_id):
         # Delete user
         user.delete()
         return JsonResponse({'message': 'User deleted successfully'})
+    
+    from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# Add these new views at the end of your views.py file
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supplier_dashboard_api_view(request):
+    """API view for supplier dashboard data."""
+    try:
+        # Get the current user
+        user = request.user
+        
+        # You can add logic here to get real data based on the supplier
+        # For now, we'll return sample data
+        return Response({
+            'totalOrders': 42,
+            'pendingOrders': 7,
+            'deliveredOrders': 31,
+            'inTransitOrders': 4
+        })
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def orders_api_view(request):
+    """API view for all orders."""
+    try:
+        # You can add logic here to get real orders from your database
+        # For now, we'll return sample data
+        return Response([
+            {'id': 1001, 'item_name': 'Fresh Tomatoes', 'quantity_ordered': 20, 'status': 'pending', 'order_date': '2025-05-10'},
+            {'id': 1002, 'item_name': 'Lettuce', 'quantity_ordered': 15, 'status': 'shipped', 'order_date': '2025-05-12'},
+            {'id': 1003, 'item_name': 'Carrots', 'quantity_ordered': 30, 'status': 'delivered', 'order_date': '2025-05-08'}
+        ])
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supplier_orders_api_view(request):
+    """API view for supplier-specific orders."""
+    try:
+        # Get the current user
+        user = request.user
+        
+        # You can add logic here to filter orders for this specific supplier
+        # For now, we'll return sample data
+        return Response([
+            {'id': 1001, 'item_name': 'Fresh Tomatoes', 'quantity_ordered': 20, 'status': 'pending', 'order_date': '2025-05-10'},
+            {'id': 1002, 'item_name': 'Lettuce', 'quantity_ordered': 15, 'status': 'shipped', 'order_date': '2025-05-12'},
+            {'id': 1003, 'item_name': 'Carrots', 'quantity_ordered': 30, 'status': 'delivered', 'order_date': '2025-05-08'}
+        ])
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    """API view to update order status."""
+    try:
+        # Get the status from request data
+        status = request.data.get('status')
+        
+        if not status:
+            return Response({
+                'error': 'Status is required'
+            }, status=400)
+        
+        # Here you would update the real order in your database
+        # For now, we'll just return a success message
+        return Response({
+            'message': f'Order {order_id} status updated to {status}'
+        })
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=500)
