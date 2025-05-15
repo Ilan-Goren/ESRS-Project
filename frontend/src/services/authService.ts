@@ -3,6 +3,7 @@ import api from './api';
 export interface LoginCredentials {
   email: string;
   password: string;
+  role?: string;  // Added optional role parameter
 }
 
 export interface User {
@@ -33,9 +34,17 @@ const storeToken = (token: string): void => {
 
 export const login = async (credentials: LoginCredentials): Promise<User> => {
   try {
+    // Log the login attempt with selected role (if any)
+    console.log('Login attempt:', { 
+      email: credentials.email, 
+      role: credentials.role || 'not specified' 
+    });
+    
+    // Pass all credentials to the API, including the role if provided
     const response = await api.post<AuthResponse>('/auth/login/', {
       username: credentials.email,
       password: credentials.password,
+      role: credentials.role  // This will be passed to the backend
     });
 
     console.log('Login response:', response.status);
@@ -52,6 +61,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
     if (response.data.role) {
       localStorage.setItem('role', response.data.role);
+      console.log('Role stored:', response.data.role);
     }
 
     return response.data.user;
