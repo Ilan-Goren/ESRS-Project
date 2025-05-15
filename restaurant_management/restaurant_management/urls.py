@@ -11,6 +11,21 @@ from store.views import (
     InventoryListCreateAPIView, UserListView, api_register_view,
     user_detail_api_view
 )
+
+from store.views import (
+    supplier_dashboard_api_view,
+    orders_api_view,
+    supplier_orders_api_view,
+    update_order_status, 
+
+    manager_dashboard_api_view,
+    suppliers_api_view,
+    supplier_detail_api_view,
+
+    staff_dashboard_api_view,
+    test_dashboard_view
+)
+
 from store.forms import CustomAuthenticationForm
 
 from django.views.decorators.csrf import csrf_exempt
@@ -32,6 +47,9 @@ class APILoginView(View):
             data = json.loads(body_unicode)
             username = data.get('username') or data.get('email')
             password = data.get('password')
+            selected_role = data.get('role')  # Get the role the user selected in the UI
+            
+            print(f"Login attempt - Username: {username}, Selected role: {selected_role}")
             
             if not username or not password:
                 return JsonResponse({'message': 'Username/email and password required'}, status=400)
@@ -40,13 +58,45 @@ class APILoginView(View):
             
             if user is not None:
                 login(request, user)
+                
+                # Get role from users table directly using raw SQL
+                from django.db import connection
+                user_role = None
+                
                 try:
-                    user_role = user.userprofile.role
-                except AttributeError:
-                    if user.is_superuser:
-                        user_role = 'admin'
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "SELECT role FROM users WHERE id = %s OR email = %s",
+                            [user.id, user.email]
+                        )
+                        result = cursor.fetchone()
+                        if result:
+                            user_role = result[0]
+                            print(f"Found role in users table: {user_role}")
+                except Exception as e:
+                    print(f"Error querying users table: {str(e)}")
+                
+                # Fallback if no role found in users table
+                if not user_role:
+                    # Allow the selected role if user is a superuser
+                    if user.is_superuser and selected_role:
+                        user_role = selected_role
+                        print(f"Using selected role for superuser: {user_role}")
                     else:
-                        user_role = 'unknown'
+                        # Default roles based on Django permissions
+                        if user.is_superuser:
+                            user_role = 'admin'
+                        elif user.is_staff:
+                            user_role = 'staff'
+                        else:
+                            # If we got here, just use the selected role as a last resort
+                            user_role = selected_role or 'staff'
+                        print(f"Using fallback role: {user_role}")
+                
+                # Ensure the role is one of the valid options
+                valid_roles = ['admin', 'manager', 'staff', 'supplier']
+                if user_role not in valid_roles:
+                    user_role = 'staff'  # Default to staff if invalid role
                 
                 # Generate standard JWT tokens
                 refresh = RefreshToken.for_user(user)
@@ -62,6 +112,8 @@ class APILoginView(View):
                     'role': user_role
                 }
                 
+                print(f"Login successful - User: {user.username}, Role: {user_role}")
+                
                 return JsonResponse({
                     'message': 'Login successful',
                     'token': access_token,
@@ -75,8 +127,8 @@ class APILoginView(View):
         except json.JSONDecodeError:
             return JsonResponse({'message': 'Invalid JSON payload'}, status=400)
         except Exception as e:
+            print(f"Login error: {str(e)}")
             return JsonResponse({'message': 'Error during login', 'error': str(e)}, status=400)
-
 urlpatterns = [
     # Django Admin
     path('admin/', admin.site.urls),
@@ -103,4 +155,17 @@ urlpatterns = [
     path('api/inventory/', InventoryListCreateAPIView.as_view()),
     path('api/users/', UserListView.as_view()),
     path('api/users/<int:user_id>/', user_detail_api_view, name='user_detail_api'),
+
+    path('api/dashboard/supplier/', supplier_dashboard_api_view, name='supplier_dashboard_api'),
+    path('api/orders/', orders_api_view, name='orders_api'),
+    path('api/orders/supplier/', supplier_orders_api_view, name='supplier_orders_api'),
+    path('api/orders/<int:order_id>/status/', update_order_status, name='update_order_status'),
+
+    path('api/dashboard/manager/', manager_dashboard_api_view, name='manager_dashboard_api'),
+    path('api/suppliers/', suppliers_api_view, name='suppliers_api'),
+    path('api/suppliers/<int:supplier_id>/', supplier_detail_api_view, name='supplier_detail_api'),
+
+    path('api/dashboard/staff/', staff_dashboard_api_view, name='staff_dashboard_api'),
+    path('api/test-dashboard/', test_dashboard_view, name='test_dashboard'),
+
 ]

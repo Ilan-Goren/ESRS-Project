@@ -27,8 +27,8 @@ const InventoryView = () => {
         tokenPresent: !!localStorage.getItem('access_token')
       });
       
-      // Use the API client instead of direct fetch
-      const response = await api.get(`/inventory/?search=${encodeURIComponent(search)}`);
+      // Use the API client
+      const response = await api.get(`/inventory/${ search ? `?search=${encodeURIComponent(search)}` : '' }`);
       setList(response.data);
     } catch (err) {
       console.error('Failed to load inventory:', err);
@@ -80,16 +80,14 @@ const InventoryView = () => {
               </tr>
             </thead>
             <tbody>
-              {list.map(function(item, i) {
-                return (
-                  <tr key={item.id}>
-                    <td className="border p-1 text-center">{i + 1}</td>
-                    <td className="border p-1">{item.item_name}</td>
-                    <td className="border p-1 text-center">{item.quantity}</td>
-                    <td className="border p-1">{item.supplier}</td>
-                  </tr>
-                );
-              })}
+              {list.map((item, i) => (
+                <tr key={item.id}>
+                  <td className="border p-1 text-center">{i + 1}</td>
+                  <td className="border p-1">{item.item_name}</td>
+                  <td className="border p-1 text-center">{item.quantity}</td>
+                  <td className="border p-1">{item.supplier}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}

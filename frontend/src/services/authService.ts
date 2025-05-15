@@ -3,6 +3,7 @@ import api from './api';
 export interface LoginCredentials {
   email: string;
   password: string;
+  role?: string;
 }
 
 export interface User {
@@ -12,7 +13,6 @@ export interface User {
   role: 'admin' | 'manager' | 'staff' | 'supplier';
 }
 
-// Updated interface to match the actual response structure
 export interface AuthResponse {
   message: string;
   role: string;
@@ -22,28 +22,40 @@ export interface AuthResponse {
   refresh?: string;
 }
 
-const storeToken = (token: string): void => {
+const storeTokens = (access: string, refresh?: string): void => {
   try {
-    localStorage.setItem('access_token', token);
-    console.log('Token stored successfully');
+    localStorage.setItem('access_token', access);
+    if (refresh) {
+      localStorage.setItem('refresh_token', refresh);
+    }
+    console.log('Tokens stored successfully');
   } catch (error) {
-    console.error('Failed to store token:', error);
+    console.error('Failed to store tokens:', error);
   }
 };
 
 export const login = async (credentials: LoginCredentials): Promise<User> => {
   try {
+    // Log the login attempt with selected role (if any)
+    console.log('Login attempt:', { 
+      email: credentials.email, 
+      role: credentials.role || 'not specified' 
+    });
+    
+    // Pass all credentials to the API, including the role if provided
     const response = await api.post<AuthResponse>('/auth/login/', {
       username: credentials.email,
       password: credentials.password,
+      role: credentials.role
     });
 
     console.log('Login response:', response.status);
 
+    // Handle different token response formats
     if (response.data.token) {
-      storeToken(response.data.token);
+      storeTokens(response.data.token);
     } else if (response.data.access) {
-      storeToken(response.data.access);
+      storeTokens(response.data.access, response.data.refresh);
     }
 
     if (response.data.user) {
@@ -52,6 +64,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
     if (response.data.role) {
       localStorage.setItem('role', response.data.role);
+      console.log('Role stored:', response.data.role);
     }
 
     return response.data.user;
@@ -90,9 +103,9 @@ export const getCurrentUser = (): User | null => {
 };
 
 export const isAuthenticated = (): boolean => {
+  const token = localStorage.getItem('access_token');
   const user = getCurrentUser();
-  const role = localStorage.getItem('role');
-  return !!user && !!role;
+  return !!token && !!user;
 };
 
 export const getRole = (): string | null => {

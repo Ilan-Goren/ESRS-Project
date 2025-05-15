@@ -44,11 +44,17 @@ const MergedLogin = () => {
     setError(null);
     
     try {
-      // Call the login function with credentials
-      const user = await login({
+      // Pass both email/password AND the selected role to the login function
+      const loginData = {
         email: data.email,
-        password: data.password
-      });
+        password: data.password,
+        role: selectedRole // Include the selected role
+      };
+      
+      console.log(`Attempting login with email: ${data.email}, role: ${selectedRole}`);
+      
+      // Call the login function
+      const user = await login(loginData);
       
       console.log("Login response:", user);
       
@@ -61,17 +67,30 @@ const MergedLogin = () => {
         return;
       }
       
-      // Check if user role matches the selected role
-      if (userRole !== selectedRole) {
-        setError(`Selected role (${selectedRole}) doesn't match your account role (${userRole})`);
-        setLoading(false);
-        return;
+      console.log(`User role from backend: ${userRole}, selected role: ${selectedRole}`);
+      
+      // Use case-insensitive comparison for roles
+      if (userRole.toLowerCase() !== selectedRole.toLowerCase()) {
+        // Allow admin to access any role
+        if (userRole.toLowerCase() === 'admin') {
+          console.log('Admin accessing another role - allowed');
+        }
+        // For non-admins, enforce role matching
+        else {
+          setError(`You don't have ${selectedRole} privileges. Please select your actual role: ${userRole}`);
+          setLoading(false);
+          return;
+        }
       }
       
       // Update auth context
       setUser(user);
       
-      // Redirect based on role
+      // Determine which dashboard to redirect to
+      const effectiveRole = userRole.toLowerCase() === 'admin' && selectedRole.toLowerCase() !== 'admin'
+        ? selectedRole.toLowerCase()  // Admin acting as another role
+        : userRole.toLowerCase();     // Normal user with their own role
+      
       const redirectMap: Record<string, string> = {
         admin: '/admin',
         manager: '/manager',
@@ -79,7 +98,7 @@ const MergedLogin = () => {
         supplier: '/supplier'
       };
       
-      navigate(redirectMap[userRole] || '/');
+      navigate(redirectMap[effectiveRole] || '/');
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error(err);
@@ -192,8 +211,9 @@ const MergedLogin = () => {
   );
 };
 
-// Styles
+// Styles - unchanged
 const styles = {
+  // ... (styles remain the same)
   inputWrapper: {
     position: "relative" as const,
     width: "100%",
